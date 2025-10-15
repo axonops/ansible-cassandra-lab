@@ -1,0 +1,128 @@
+- name: Install docker
+  package:
+    name: docker.io
+    state: present
+    update_cache: true
+
+- name: Create wetty user
+  ansible.builtin.user:
+    name: wetty
+    state: present
+    shell: /bin/bash
+    create_home: true
+    ssh_key_bits: 2048
+    ssh_key_file: /home/wetty/.ssh/id_ed25519
+    ssh_key_comment: "wetty@{{ inventory_hostname }}"
+    ssh_key_type: ed25519
+    generate_ssh_key: true
+
+- name: Create /home/wetty/.cassandra
+  ansible.builtin.file:
+    state: directory
+    owner: wetty
+    group: wetty
+    mode: '0700'
+
+- name: Link pub to authorized_keys
+  file:
+    src: /home/wetty/.ssh/id_ed25519.pub
+    dest: /home/wetty/.ssh/authorized_keys
+    state: link
+    owner: wetty
+    group: wetty
+    mode: '0600'
+
+- name: Run Wetty docker container
+  community.docker.docker_container:
+    name: wetty
+    image: wettyoss/wetty
+    state: started
+    restart_policy: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - /home/wetty:/home/wetty
+    command: >
+      --ssh-host={{ inventory_hostname}}
+      --ssh-auth=publickey
+      --ssh-key=/home/wetty/.ssh/id_ed25519
+      --ssh-user=wetty
+
+- name: Set up nginx
+  tags: nginx,wetty
+  block:
+    - name: Ensure nginx is installed
+      ansible.builtin.package:
+        name:
+          - nginx
+          - python3-passlib
+        state: present
+        update_cache: true
+
+    - name: Create SSL directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - "/etc/ssl/certs"
+        - "/etc/ssl/private"
+
+    - name: Generate self-signed SSL certificate
+      ansible.builtin.command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout {{ wetty_ssl_key_path }}
+        -out {{ wetty_ssl_cert_path }}
+        -subj "{{ wetty_ssl_subject }}"
+      args:
+        creates: "{{ wetty_ssl_cert_path }}"
+      notify: Restart nginx
+
+    - name: Create htpasswd file for basic auth
+      community.general.htpasswd:
+        path: /etc/nginx/.htpasswd
+        name: "{{ wetty_http_username }}"
+        password: "{{ wetty_http_password }}"
+        owner: root
+        group: www-data
+        mode: '0640'
+      notify: Restart nginx
+      no_log: false
+
+    - name: Create nginx config for wetty
+      notify: Restart nginx
+      tags: nginx,wetty
+      ansible.builtin.copy:
+        dest: /etc/nginx/sites-enabled/wetty
+        owner: root
+        group: root
+        content: |
+          server {
+              listen 443 ssl;
+              server_name {{ inventory_hostname}};
+
+              ssl_certificate /etc/ssl/certs/wetty.pem;
+              ssl_certificate_key /etc/ssl/private/wetty.key;
+
+              location / {
+                  auth_basic "Private Access";
+                  auth_basic_user_file /etc/nginx/.htpasswd;
+
+                  proxy_pass http://127.0.0.1:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+
+- name: Change nginx state
+  service:
+    name: nginx
+    state: "{{ wetty_running_state | default('started') }}"
+    enabled: true
