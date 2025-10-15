@@ -38,3 +38,4 @@ terraform.rc
 
 ansible/group_vars/lab/vault-excluded-git.yml
 ansible/inventories/lab/hosts.ini
+ansible/files/ssl/lab/
