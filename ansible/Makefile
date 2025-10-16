@@ -62,6 +62,11 @@ rolling-restart: check-env ## Performs a rolling restart of the Cassandra Cluste
 		-u ${ANSIBLE_USER} \
 		-e env=${ENVIRONMENT}
 
+wipe: check-env ## Performs a wipe
+	@${PIPENVCMD} ansible-playbook -i $(INVENTORY) wipe.yml ${EXTRA} \
+		-u ${ANSIBLE_USER} \
+		-e env=${ENVIRONMENT}
+
 stop-nginx: check-env ## Stops nginx on the bastion host
 	@${PIPENVCMD} ansible -i $(INVENTORY) -u $(ANSIBLE_USER) -m ansible.builtin.service -a "name=nginx state=stopped" cassandra
 

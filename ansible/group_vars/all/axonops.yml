@@ -9,5 +9,5 @@ axon_agent_port: 443
 
 axon_agent_disable_command_exec: true
 
-cqlai_host: "{{ cassandra_rpc_address | default(ansible_default_ipv4.address) }}"
+cqlai_host: "localhost"
 cqlai_port: 9042

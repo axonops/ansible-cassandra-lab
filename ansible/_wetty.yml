@@ -33,6 +33,40 @@
     group: wetty
     mode: '0600'
 
+- name: CQLAI config
+  tags: cqlai
+  ansible.builtin.copy:
+    dest: /home/wetty/.cqlai.json
+    mode: "0600"
+    owner: wetty
+    group: wetty
+    content: |
+      {
+        "host": "10.18.1.2",
+        "port": 9042,
+        "keyspace": "",
+        "username": "cassandra",
+        "password": "cassandra",
+        "requireConfirmation": true,
+        "consistency": "LOCAL_ONE",
+        "pageSize": 100,
+        "historyFile": "~/.cqlai/history",
+        "aiHistoryFile": "~/.cqlai/ai_history",
+        "ssl": {
+          "enabled": true,
+          "caPath": "",
+          "hostVerification": false,
+          "insecureSkipVerify": true
+        },
+        "ai": {
+          "provider": "openai",
+          "openai": {
+            "apiKey": "",
+            "model": "gpt-3.5-turbo"
+          }
+        }
+      }
+
 - name: Run Wetty docker container
   community.docker.docker_container:
     name: wetty

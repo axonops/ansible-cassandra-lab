@@ -1,0 +1,19 @@
+- name: Stop Cassandra and AxonOps Agent and Wipe Data
+  hosts: "cassandra"
+  become: true
+  tasks:
+    - name: Stop AxonOps Agent
+      ansible.builtin.service:
+        name: axon-agent
+        state: "stopped"
+
+    - name: Stop Cassandra
+      ansible.builtin.service:
+        name: cassandra
+        state: "stopped"
+
+    - name: "Wipe data if specified"
+      ansible.builtin.shell:
+        rm -rf /data/cassandra/*
+
+# code: language=ansible

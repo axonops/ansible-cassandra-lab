@@ -1,12 +1,12 @@
 - name: Start or restart Cassandra and AxonOps Agent (SEEDS Only)
-  hosts: "cassandra"
+  hosts: "seeds"
   become: true
   serial: 1
   vars:
     state: started
+    wipe: false
   tasks:
     - name: Starting seeds
-      when: inventory_hostname in cassandra_seeds or ansible_enp7s0.ipv4.address in cassandra_seeds
       block:
         - name: Start Cassandra service
           ansible.builtin.service:
@@ -21,19 +21,18 @@
         - name: Wait for Cassandra to be up and running
           ansible.builtin.wait_for:
             port: 9042
-            host: "{{ cassandra_rpc_address | default(ansible_default_ipv4.address) | default('localhost') }}"
+            host: "{{ cassandra_listen_address | default(ansible_default_ipv4.address) | default('localhost') }}"
             timeout: 300
             state: started
 
 - name: Start or restart Cassandra and AxonOps Agent (Non Seeds)
-  hosts: "cassandra"
+  hosts: "cassandra:!seeds"
   become: true
   serial: 1
   vars:
     state: started
   tasks:
     - name: Starting non-seeds
-      when: (not inventory_hostname in cassandra_seeds) and (not ansible_enp7s0.ipv4.address in cassandra_seeds)
       block:
         - name: Start Cassandra service
           ansible.builtin.service:
@@ -48,7 +47,7 @@
         - name: Wait for Cassandra to be up and running
           ansible.builtin.wait_for:
             port: 9042
-            host: "{{ cassandra_rpc_address | default(ansible_default_ipv4.address) | default('localhost') }}"
+            host: "{{ cassandra_listen_address | default(ansible_default_ipv4.address) | default('localhost') }}"
             timeout: 300
             state: started
 

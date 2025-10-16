@@ -61,7 +61,8 @@ cassandra_cluster_name: "{{ env }}"
 # Set in the inventory
 # cassandra_dc: "{{ cassandra_cluster_name }}-dc1"
 cassandra_listen_address: "{{ ansible_enp7s0.ipv4.address }}"
-cassandra_rpc_address: "{{ ansible_enp7s0.ipv4.address }}"
+cassandra_broadcast_rpc_address: "{{ ansible_eth0.ipv4.address }}"
+cassandra_rpc_address: 0.0.0.0
 
 # cassandra_broadcast_rpc_address: "{{ ansible_enp7s0.ipv4.address }}"
 # cassandra_broadcast_address: "{{ ansible_enp7s0.ipv4.address }}"
