@@ -43,8 +43,15 @@
       vars:
         os_user_pw_ageing: false
 
-    # - role: axonops.axonops.cqlai
-    #   tags: cqlai
+    - role: axonops.axonops.cqlai
+      tags: cqlai
+      when: "'bastion' in ansible_hostname"
+      vars:
+        cqlai_host: "10.18.1.6"
+        cqlai_port: 9042
+        qlai_ssl_enabled: true
+        cqlai_ssl_cert_path: ""
+        cqlai_ssl_key_path: ""
 
   post_tasks:
     - name: Install wetty
