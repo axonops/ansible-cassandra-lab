@@ -50,6 +50,12 @@ resource "hcloud_firewall" "bastion" {
     port       = "22"
     source_ips = var.allowed_cidrs
   }
+  rule {
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "443"
+    source_ips = var.allowed_cidrs
+  }
 }
 
 # Bastion instance
@@ -77,7 +83,7 @@ resource "hcloud_server" "bastion" {
   }
 
   lifecycle {
-    ignore_changes = [user_data, network]
+    ignore_changes = [user_data, network, firewall_ids]
   }
 
   depends_on = [hcloud_network_subnet.sin_lab_subnet]
@@ -95,7 +101,6 @@ resource "hcloud_firewall" "cassandra" {
     source_ips = concat(["${hcloud_server.bastion.ipv4_address}/32"], var.allowed_cidrs)
   }
 
-  # SSH access - restricted to bastion only
   rule {
     direction  = "in"
     protocol   = "tcp"
@@ -215,7 +220,7 @@ resource "hcloud_server" "cassandra" {
   }
 
   lifecycle {
-    ignore_changes = [user_data, network]
+    ignore_changes = [user_data, network, firewall_ids]
   }
 
   depends_on = [hcloud_network_subnet.sin_lab_subnet]

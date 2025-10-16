@@ -18,6 +18,7 @@
 
 - name: Create /home/wetty/.cassandra
   ansible.builtin.file:
+    path: /home/wetty/.cassandra
     state: directory
     owner: wetty
     group: wetty

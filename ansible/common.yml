@@ -10,7 +10,11 @@
   pre_tasks:
     - name: Ensure curl is installed
       ansible.builtin.package:
-        name: curl
+        name:
+          - curl
+          - jq
+          - unzip
+          - nginx
         state: present
         update_cache: true
 
@@ -19,5 +23,24 @@
       tags: hardening
       vars:
         os_user_pw_ageing: false
+
+  post_tasks:
+    - name: Install wetty
+      ansible.builtin.import_tasks: _wetty.yml
+      tags: wetty
+      vars:
+        # Nginx settings
+        wetty_use_nginx: true
+        wetty_nginx_port: 443
+        wetty_server_name: "{{ ansible_fqdn }}"
+
+        # SSL settings
+        wetty_use_ssl: true
+        wetty_generate_self_signed_cert: true
+        wetty_ssl_cert_path: "/etc/ssl/certs/wetty.pem"
+        wetty_ssl_key_path: "/etc/ssl/private/wetty.key"
+        wetty_ssl_subject: "/C=US/ST=New York/L=New York/O=IT/CN={{ wetty_server_name }}"
+        wetty_http_username: wetty
+        wetty_http_password: "AxonOpsLab2025!"
 
 # code: language=ansible

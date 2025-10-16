@@ -117,6 +117,7 @@
             group: "{{ item.user }}"
           loop:
             - {user: 'root', home: '/root'}
+            - {user: 'wetty', home: '/home/wetty'}
 
         - name: Create cqlshrc credentials file
           when:
