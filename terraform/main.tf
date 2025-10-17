@@ -56,6 +56,12 @@ resource "hcloud_firewall" "bastion" {
     port       = "443"
     source_ips = var.allowed_cidrs
   }
+  rule {
+    direction  = "in"
+    protocol   = "udp"
+    port       = "51920"
+    source_ips = ["0.0.0.0/0"]
+  }
 }
 
 # Bastion instance

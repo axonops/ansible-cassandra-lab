@@ -46,9 +46,7 @@ ${join("\n", [for idx, s in hcloud_server.cassandra : "${s.ipv4_address} cassand
 ${join("\n", [for idx, s in hcloud_server.cassandra : "${s.ipv4_address} cassandra_rack=${s.labels.cassandra_rack} cassandra_dc=${s.labels.cassandra_dc} ansible_hostname=cassandra-node-${idx + 1}" if s.labels.cassandra_dc == "dc1" && s.labels.cassandra_rack == "rack3"])}
 
 [cassandra:children]
-cassandra-rack1
-cassandra-rack2
-cassandra-rack3
+${var.environment}
 
 [seeds-dc1-rack1]
 ${join("\n", slice([for idx, s in hcloud_server.cassandra : s.ipv4_address if s.labels.cassandra_dc == "dc1" && s.labels.cassandra_rack == "rack1"], 0, 1))}
