@@ -103,7 +103,7 @@
             content: |
               export CASSANDRA_HOME=/opt/cassandra
               export PATH=$PATH:$CASSANDRA_HOME/bin
-              alias cqlsh='/opt/cassandra/bin/cqlsh --ssl --request-timeout=60 --connect-timeout=60'
+              alias cqlsh='/usr/local/bin/cqlsh --ssl --request-timeout=60 --connect-timeout=60'
               {% if cassandra_jmx_password is defined and cassandra_jmx_password != '' %}
               alias nodetool='/opt/cassandra/bin/nodetool -u {{ cassandra_jmx_user | default('cassandra') }} -pwf /opt/cassandra/conf/jmxremote.password'
               {% endif %}
