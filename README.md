@@ -114,7 +114,7 @@ pipenv install
 
 # All make commands use pipenv automatically
 make prep
-make cassandra ENVIRONMENT=lab
+make cassandra ENVIRONMENT=lab ANSIBLE_USER=root
 ```
 
 **Using System Python or venv (Alternative):**
@@ -548,8 +548,17 @@ location    = "sin"               # Singapore (nbg1, fsn1, hel1, ash, hil)
 server_type        = "cpx31"      # 4 vCPU, 8GB RAM per Cassandra node
 bastion_server_type = "cpx11"     # 2 vCPU, 2GB RAM for bastion
 
-# Security
-allowed_cidrs = ["YOUR_IP/32"]    # Restrict access to your IP
+# Storage
+disk_size = 40                    # Data volume size in GB per Cassandra node
+
+# Operating System
+image = "ubuntu-24.04"            # OS image (ubuntu-24.04, ubuntu-22.04, etc.)
+
+# Security - Bastion Access
+allowed_cidrs = ["YOUR_IP/32"]    # IPs allowed to access bastion (SSH, HTTPS) and non-SQL port
+
+# Security - Cassandra Access
+allowed_cidrs_cassandra = ["0.0.0.0/0"]  # IPs allowed CQL/JMX access to Cassandra nodes
 
 # SSH keys
 ssh_keys = []                     # Empty = auto-generate, or ["key-name"]
@@ -637,18 +646,27 @@ make tf-clean                    # Remove .terraform cache
 
 ### Network Configuration
 
+> **🔐 SECURITY NOTE - Two Firewall Variables:**
+> This project uses **two separate firewall variables** for granular access control:
+>
+> - **`allowed_cidrs`** - Controls access to **bastion host only** (SSH, HTTPS/Wetty)
+> - **`allowed_cidrs_cassandra`** - Controls **CQL (9042) and JMX access** to Cassandra nodes
+>
+> This separation allows you to restrict bastion access to your office IP while allowing application servers broader access to Cassandra.
+
 **Firewall Rules:**
 
 **Bastion:**
 - Port 22 (SSH) ← from `allowed_cidrs`
 - Port 443 (HTTPS/Wetty) ← from `allowed_cidrs`
+- Port 51920 (UDP/WireGuard) ← from all (for VPN access)
 
 **Cassandra Nodes:**
 - Port 22 (SSH) ← from bastion + `allowed_cidrs`
 - Port 443 (HTTPS) ← from `allowed_cidrs`
-- Port 9042 (CQL) ← from `allowed_cidrs` + private network
-- Ports 22-9042 ← from private network (10.18.0.0/16)
-- Ports 7000, 7001, 9042 ← from other Cassandra node IPs
+- Port 9042 (CQL) ← from `allowed_cidrs_cassandra` + private network
+- Ports 7000, 7001 (Gossip) ← from other Cassandra node IPs
+- All ports ← from private network (10.18.0.0/16)
 
 ## Ansible Configuration
 
@@ -961,7 +979,7 @@ cd ../ansible
 # 1. Set up vault password
 echo "your-vault-password" > ~/.ansible_vault_pass
 chmod 600 ~/.ansible_vault_pass
-export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass_${ENVIRONMENT}
 
 # 2. Install Ansible dependencies
 make prep
