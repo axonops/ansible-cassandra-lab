@@ -6,8 +6,6 @@
   **Purpose-Built Database Management Desktop App for Apache Cassandra®**
 
   [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-  [![GitHub Issues](https://img.shields.io/github/issues/axonops/ansible-cassandra-lab)](https://github.com/axonops/ansible-cassandra-lab/issues)
-  [![GitHub Discussions](https://img.shields.io/github/discussions/axonops/ansible-cassandra-lab)](https://github.com/axonops/ansible-cassandra-lab/discussions)
 </div>
 
 # Apache Cassandra Lab Environment
@@ -46,7 +44,7 @@ This lab environment provides:
 │  └──────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌──────────────┐                                           │
-│  │   Bastion    │ (SSH + WireGuard VPN + Web Terminal)      │
+│  │   Bastion    │ (SSH + Web Terminal)                      │
 │  └──────────────┘                                           │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -58,21 +56,46 @@ This lab environment provides:
 - **GossipingPropertyFileSnitch** for datacenter/rack awareness
 - **4 seed nodes** (2 per DC) for reliable cluster formation
 - **Private networking** (10.18.0.0/16) for inter-node communication
-- **Bastion host** with WireGuard VPN and web terminal access
 
 ## Prerequisites
 
 ### Required Accounts & Credentials
 
 1. **Hetzner Cloud**
-   - Account: [console.hetzner.cloud](https://console.hetzner.cloud/)
-   - API Token with read/write permissions
+   - You'll need a Hetzner Cloud account with API token
+   - The token requires read/write permissions
+   - Set via environment variable: `export HCLOUD_TOKEN="your-token"`
 
-2. **AxonOps SaaS**
-   - Account: [console.axonops.cloud](https://console.axonops.cloud/)
-   - Organization name
-   - Agent key (from organization settings)
-   - API token (for alerts configuration)
+2. **AxonOps Free Account**
+
+   AxonOps provides a free tier for monitoring Cassandra clusters. To sign up:
+
+   **Step 1: Create Account**
+   - Visit [axonops.com/free-trial](https://axonops.com/free-trial) or [console.axonops.cloud](https://console.axonops.cloud/)
+   - Click "Sign Up" or "Start Free Trial"
+   - Provide your email, name, and create a password
+   - Verify your email address
+
+   **Step 2: Create Organization**
+   - After logging in, you'll be prompted to create an organization
+   - Choose a unique organization name (e.g., "my-company")
+   - Note: This organization name is used in configuration files
+
+   **Step 3: Get Agent Key**
+   - Navigate to Settings → Agent Keys
+   - Copy your agent key (starts with `axon-`)
+   - This key connects your Cassandra nodes to AxonOps
+
+   **Step 4: Get API Token (for alerts)**
+   - Navigate to Settings → API Tokens
+   - Click "Generate New Token"
+   - Copy the token immediately (it's only shown once)
+   - This token is used to configure alerts via Ansible
+
+   **What you'll need:**
+   - Organization name (e.g., "my-company")
+   - Agent key (for connecting Cassandra nodes)
+   - API token (for configuring monitoring and alerts)
 
 ### Required Tools
 
@@ -321,7 +344,6 @@ terraform destroy
 **Bastion:**
 - Port 22 (SSH) ← from `allowed_cidrs`
 - Port 443 (HTTPS/Wetty) ← from `allowed_cidrs`
-- Port 51920 (WireGuard) ← from `0.0.0.0/0`
 
 **Cassandra Nodes:**
 - Port 22 (SSH) ← from bastion + `allowed_cidrs`
@@ -441,7 +463,7 @@ cassandra_counter_write_request_timeout: "5000s"
 **Inventory variables** (from Terraform):
 ```ini
 [lab]
-5.223.73.105 cassandra_rack=rack1 cassandra_dc=dc1 ansible_hostname=cassandra-node-1
+<cassandra-server-ip> cassandra_rack=rack1 cassandra_dc=dc1 ansible_hostname=cassandra-node-1
 ...
 
 [all:vars]
@@ -1061,41 +1083,292 @@ ssh root@<node-ip> "nodetool status"
 
 ## Multi-Environment Setup
 
-### Creating Production Environment
+This project supports multiple isolated environments (lab, staging, production) running simultaneously or separately. Each environment has its own:
+
+- Terraform state and infrastructure
+- Ansible inventory and configuration
+- AxonOps cluster monitoring
+- Network isolation
+
+### Environment Naming Convention
+
+We recommend using short environment codes:
+- `lab` - Development/testing environment (default)
+- `stg` - Staging environment for pre-production testing
+- `prd` - Production environment
+
+### Creating a Staging Environment
 
 ```bash
-# 1. Create production Terraform workspace
+# 1. Create staging infrastructure with Terraform
 cd terraform
-terraform workspace new prod
 
-# 2. Create prod tfvars
-cp terraform.tfvars prod.tfvars
-vim prod.tfvars
-# Set: environment = "prod"
-#      server_type = "cpx51"  # Larger for production
-#      allowed_cidrs = ["restricted-ip-ranges"]
+# Create a new Terraform workspace for isolation
+terraform workspace new stg
 
-# 3. Deploy prod infrastructure
-terraform apply -var-file=prod.tfvars
+# Create staging configuration
+cat > stg.tfvars <<EOF
+environment = "stg"
+location    = "fsn1"              # Falkenstein (or your preferred location)
+server_type = "cpx31"             # 4 vCPU, 8GB RAM
+bastion_server_type = "cpx11"
+allowed_cidrs = ["YOUR_IP/32"]
+ssh_keys = []
+EOF
 
-# 4. Create prod Ansible configuration
+# Deploy staging infrastructure
+terraform apply -var-file=stg.tfvars
+
+# Verify inventory was created
+cat ../ansible/inventories/stg/hosts.ini
+
+# 2. Create staging Ansible configuration
 cd ../ansible
-mkdir -p group_vars/prod
-cp -r group_vars/lab/* group_vars/prod/
 
-# 5. Update prod settings
-vim group_vars/prod/cassandra.yml
-vim group_vars/prod/axonops.yml
-ansible-vault edit group_vars/prod/vault.yml
+# Create staging group_vars
+mkdir -p group_vars/stg
+cp -r group_vars/lab/* group_vars/stg/
 
-# 6. Create prod monitoring config
-mkdir -p alerts-config/<org>/prod
-cp -r alerts-config/<org>/lab/* alerts-config/<org>/prod/
+# Update staging-specific settings
+vim group_vars/stg/cassandra.yml
+# Adjust: cassandra_cluster_name: "stg"
+#         heap sizes, performance tuning, etc.
 
-# 7. Deploy production cluster
-make common ENVIRONMENT=prod
-make cassandra ENVIRONMENT=prod
-make alerts ENVIRONMENT=prod
+vim group_vars/stg/axonops.yml
+# Keep: axon_agent_customer_name and axon_agent_key reference vault
+
+# Create staging vault with credentials
+ansible-vault create group_vars/stg/vault.yml
+# Add:
+#   vault_axon_agent_customer_name: "your-org"
+#   vault_axon_agent_key: "your-agent-key"
+
+# 3. Create staging monitoring configuration
+mkdir -p alerts-config/<your-org>/stg
+cp -r alerts-config/<your-org>/lab/* alerts-config/<your-org>/stg/
+
+# Customize staging alerts
+vim alerts-config/<your-org>/stg/alert_routes.yml
+vim alerts-config/<your-org>/stg/backups.yml
+
+# 4. Deploy staging cluster
+make common ENVIRONMENT=stg
+make cassandra ENVIRONMENT=stg
+make alerts ENVIRONMENT=stg
+
+# 5. Verify staging cluster
+ssh -i ../terraform/ssh_key root@<stg-bastion-ip>
+ssh root@<stg-node-private-ip>
+nodetool status
+```
+
+### Creating a Production Environment
+
+```bash
+# 1. Create production infrastructure with Terraform
+cd terraform
+
+# Create production workspace
+terraform workspace new prd
+
+# Create production configuration with larger instances
+cat > prd.tfvars <<EOF
+environment = "prd"
+location    = "hel1"              # Helsinki (or your preferred location)
+server_type = "cpx51"             # 16 vCPU, 32GB RAM for production
+bastion_server_type = "cpx21"     # Larger bastion for production
+allowed_cidrs = ["VPN_IP/32", "OFFICE_IP/32"]  # Restrict to known IPs only
+ssh_keys = ["prod-ssh-key"]       # Use existing SSH key for security
+EOF
+
+# Deploy production infrastructure
+terraform apply -var-file=prd.tfvars
+
+# Verify inventory
+cat ../ansible/inventories/prd/hosts.ini
+
+# 2. Create production Ansible configuration
+cd ../ansible
+
+# Create production group_vars
+mkdir -p group_vars/prd
+
+# Copy base configuration
+cp -r group_vars/lab/* group_vars/prd/
+
+# Configure production Cassandra settings
+cat > group_vars/prd/cassandra.yml <<EOF
+---
+# Production-specific overrides
+
+# Larger heap for production (adjust based on your instance size)
+cassandra_max_heap_size: "16G"
+cassandra_heap_newsize: "4G"
+
+# Higher concurrency for production workload
+cassandra_concurrent_compactors: "8"
+cassandra_compaction_throughput: "128MiB/s"
+cassandra_concurrent_reads: 64
+cassandra_concurrent_writes: 64
+
+# Production cache sizes
+cassandra_counter_cache_save_period: "7200s"
+cassandra_counter_write_request_timeout: "10000s"
+
+# Cluster name
+cassandra_cluster_name: "prd"
+EOF
+
+# Configure production AxonOps settings
+vim group_vars/prd/axonops.yml
+
+# Create production vault (IMPORTANT: Use production credentials!)
+ansible-vault create group_vars/prd/vault.yml
+# Add:
+#   vault_axon_agent_customer_name: "your-org"
+#   vault_axon_agent_key: "your-production-agent-key"
+
+# (Optional) Configure SSL for production
+vim group_vars/prd/ssl.yml
+ansible-vault create group_vars/prd/ssl_vault.yml
+
+# 3. Create production monitoring configuration
+mkdir -p alerts-config/<your-org>/prd
+cp -r alerts-config/<your-org>/lab/* alerts-config/<your-org>/prd/
+
+# Configure production-specific monitoring
+vim alerts-config/<your-org>/prd/alert_routes.yml
+# Route critical alerts to PagerDuty for production
+
+vim alerts-config/<your-org>/prd/backups.yml
+# More frequent backups and longer retention for production:
+# Hourly incrementals, daily fulls, weekly snapshots
+
+vim alerts-config/<your-org>/prd/service_checks.yml
+# Stricter thresholds for production
+
+# 4. Deploy production cluster
+make common ENVIRONMENT=prd
+make cassandra ENVIRONMENT=prd
+make alerts ENVIRONMENT=prd
+
+# 5. Verify production cluster
+ssh -i ../terraform/ssh_key root@<prd-bastion-ip>
+ssh root@<prd-node-private-ip>
+nodetool status
+
+# 6. Check AxonOps Console
+# Visit: https://console.axonops.cloud/
+# Verify you see separate clusters: "lab", "stg", "prd"
+```
+
+### Environment Comparison
+
+| Aspect | Lab | Staging | Production |
+|--------|-----|---------|------------|
+| Purpose | Development/Testing | Pre-production validation | Live production |
+| Instance Size | cpx31 (4vCPU, 8GB) | cpx31 (4vCPU, 8GB) | cpx51 (16vCPU, 32GB) |
+| Node Count | 12 | 12 | 12-15 |
+| Heap Size | Auto (4-8GB) | Auto (4-8GB) | 16GB+ |
+| SSL/TLS | Optional | Recommended | Required |
+| Access Control | Open (for testing) | Restricted | Highly restricted |
+| Backup Retention | 7 days | 14 days | 30-90 days |
+| Alert Routing | Email | Slack | PagerDuty + Slack |
+| Cost (monthly) | ~€155 | ~€155 | ~€310 |
+
+### Managing Multiple Environments
+
+**Switch between Terraform workspaces:**
+```bash
+cd terraform
+
+# List workspaces
+terraform workspace list
+
+# Switch to staging
+terraform workspace select stg
+
+# Check current workspace
+terraform workspace show
+
+# Work with specific environment
+terraform apply -var-file=stg.tfvars
+```
+
+**Deploy to specific environment with Ansible:**
+```bash
+cd ansible
+
+# Deploy to staging
+make cassandra ENVIRONMENT=stg
+
+# Deploy to production
+make cassandra ENVIRONMENT=prd
+
+# Rolling restart staging
+make rolling-restart ENVIRONMENT=stg
+```
+
+**View environment in AxonOps Console:**
+
+Each environment appears as a separate cluster in the AxonOps Console:
+- Cluster name: `lab`, `stg`, or `prd`
+- Organization: Same organization for all environments
+- Monitoring: Isolated metrics and alerts per cluster
+
+### Best Practices for Multiple Environments
+
+1. **Terraform State Isolation**
+   - Use separate workspaces or remote backends per environment
+   - Never share state between environments
+
+2. **Credentials Management**
+   - Use separate vault files per environment
+   - Use different SSH keys for production
+   - Rotate production credentials regularly
+
+3. **Network Isolation**
+   - Deploy environments in different regions if possible
+   - Use separate private networks per environment
+   - Restrict production access to VPN/office IPs only
+
+4. **Progressive Deployment**
+   - Test changes in `lab` first
+   - Promote to `stg` for validation
+   - Deploy to `prd` only after staging validation
+
+5. **Monitoring Separation**
+   - Configure different alert routes per environment
+   - Use PagerDuty for production, Slack for staging/lab
+   - Set stricter thresholds for production alerts
+
+6. **Backup Strategy**
+   - Lab: Minimal backups (7 days)
+   - Staging: Regular backups (14 days)
+   - Production: Comprehensive backups (30-90 days)
+
+### Destroying an Environment
+
+```bash
+# Destroy lab environment
+cd terraform
+terraform workspace select lab
+terraform destroy
+
+cd ../ansible
+rm -rf group_vars/lab
+rm -rf inventories/lab
+rm -rf alerts-config/<org>/lab
+
+# Destroy staging environment
+cd terraform
+terraform workspace select stg
+terraform destroy
+
+cd ../ansible
+rm -rf group_vars/stg
+rm -rf inventories/stg
+rm -rf alerts-config/<org>/stg
 ```
 
 ## Performance Tuning

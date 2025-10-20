@@ -1,0 +1,7 @@
+---
+cassandra_max_heap_size: "{%if (ansible_memtotal_mb * 0.5 / 1024) | round | int > 40 %}40{% else %}{{ (ansible_memtotal_mb * 0.5 / 1024) | round | int }}{% endif %}G"
+#cassandra_max_heap_size: 1G
+cassandra_concurrent_compactors: "4"
+cassandra_compaction_throughput: "64MiB/s"
+cassandra_counter_cache_save_period: "7200s"
+cassandra_counter_write_request_timeout: "5000s"
