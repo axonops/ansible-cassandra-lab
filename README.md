@@ -71,7 +71,7 @@ This lab environment provides:
    AxonOps provides a free tier for monitoring Cassandra clusters. To sign up:
 
    **Step 1: Create Account**
-   - Visit [axonops.com/](https://axonops.com/)
+   - Visit [AxonOps](https://axonops.com/)
    - Click "Sign Up" or "Free Account"
    - Provide your email, name, and create a password
    - Verify your email address
@@ -145,13 +145,13 @@ export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
 cd terraform
 
 # Initialize Terraform
-terraform init
+make init
 
 # Review what will be created
-terraform plan
+make plan
 
 # Create infrastructure (12 nodes + bastion)
-terraform apply
+make apply
 
 # Note: This automatically creates ansible/inventories/lab/hosts.ini
 ```
@@ -193,10 +193,10 @@ make alerts ENVIRONMENT=lab
 ```bash
 # Get bastion IP
 cd ../terraform
-terraform output | grep bastion
+make output
 
-# SSH to bastion
-ssh -i ssh_key root@<bastion-ip>
+# SSH to bastion (or use make ssh-bastion)
+make ssh-bastion
 
 # Access web terminal
 https://<bastion-ip>
@@ -468,30 +468,21 @@ make deploy-stg               # Deploy staging (with workspace management)
 make deploy-prd               # Deploy production (with workspace management)
 ```
 
-**Direct Terraform Commands:**
-
-You can also use Terraform commands directly:
+**State Management:**
 ```bash
-cd terraform
-
-# Initialize and download providers
-terraform init
-
-# Validate configuration
-terraform validate
-
-# Preview changes
-terraform plan -var-file=lab.terraform.tfvars
-
-# Apply changes
-terraform apply -var-file=lab.terraform.tfvars
-
-# Show all outputs (IPs, inventory, etc.)
-terraform output
-
-# Destroy infrastructure
-terraform destroy -var-file=lab.terraform.tfvars
+make state-list                        # List all resources in state
+make state-show RESOURCE=<name>        # Show specific resource details
+make refresh                           # Refresh state from real infrastructure
 ```
+
+**Additional Commands:**
+```bash
+make graph                    # Generate dependency graph (requires graphviz)
+make version                  # Show Terraform version
+make clean                    # Remove .terraform cache
+```
+
+> **Note:** All commands use the Makefile which automatically handles environment-specific configuration files. The Makefile includes safety checks for required environment variables and configuration files.
 
 ### Network Configuration
 
@@ -743,16 +734,16 @@ cp terraform.tfvars.example terraform.tfvars
 vim terraform.tfvars  # Edit with your preferences
 
 # 4. Initialize Terraform
-terraform init
+make init
 
 # 5. Deploy infrastructure
-terraform apply
+make apply
 
-# 6. Verify inventory creation
-cat ../ansible/inventories/lab/hosts.ini
+# 6. Save inventory to Ansible directory
+make inventory-save
 
-# 7. Note the bastion IP for later
-terraform output | grep bastion
+# 7. View outputs (bastion IP, node IPs, etc.)
+make output
 ```
 
 ### Phase 2: Prepare Ansible Configuration
@@ -903,10 +894,10 @@ vim main.tf
 # You may need additional placement groups for dc3 or more racks
 
 # 3. Apply infrastructure changes
-terraform apply
+make apply
 
-# 4. Verify new nodes in inventory
-cat ../ansible/inventories/lab/hosts.ini
+# 4. Save updated inventory
+make inventory-save
 
 # 5. Deploy Cassandra to all nodes (including new ones)
 cd ../ansible
@@ -1106,7 +1097,7 @@ ls -la terraform/ssh_key
 chmod 600 terraform/ssh_key
 
 # Verify your IP is in allowed_cidrs
-terraform output
+make output
 
 # Test connection
 ssh -i terraform/ssh_key -v root@<bastion-ip>
@@ -1122,7 +1113,7 @@ ssh -i terraform/ssh_key -v root@<bastion-ip>
 ```bash
 # Manually trigger
 cd terraform
-terraform output -raw ansible_inventory > ../ansible/inventories/lab/hosts.ini
+make inventory-save
 ```
 
 ### Ansible Issues
@@ -1147,7 +1138,7 @@ cat inventories/lab/hosts.ini
 
 # Check firewall rules (ensure your IP is in allowed_cidrs)
 cd ../terraform
-terraform output
+make output
 ```
 
 **Problem:** AxonOps agent not connecting
@@ -1243,7 +1234,7 @@ nodetool tablestats <keyspace>.<table>
 ```bash
 # Verify firewall allows your IP
 cd terraform
-terraform output
+make output
 
 # Test connectivity
 nc -zv <node-ip> 9042
@@ -1288,7 +1279,7 @@ We recommend using short environment codes:
 cd terraform
 
 # Create a new Terraform workspace for isolation
-terraform workspace new stg
+make workspace-new WORKSPACE=stg
 
 # Create staging configuration
 cat > stg.tfvars <<EOF
@@ -1301,10 +1292,10 @@ ssh_keys = []
 EOF
 
 # Deploy staging infrastructure
-terraform apply -var-file=stg.tfvars
+make apply ENVIRONMENT=stg
 
-# Verify inventory was created
-cat ../ansible/inventories/stg/hosts.ini
+# Save inventory to Ansible directory
+make inventory-save ENVIRONMENT=stg
 
 # 2. Create staging Ansible configuration
 cd ../ansible
@@ -1353,7 +1344,7 @@ nodetool status
 cd terraform
 
 # Create production workspace
-terraform workspace new prd
+make workspace-new WORKSPACE=prd
 
 # Create production configuration with larger instances
 cat > prd.tfvars <<EOF
@@ -1366,10 +1357,10 @@ ssh_keys = ["prod-ssh-key"]       # Use existing SSH key for security
 EOF
 
 # Deploy production infrastructure
-terraform apply -var-file=prd.tfvars
+make apply ENVIRONMENT=prd
 
-# Verify inventory
-cat ../ansible/inventories/prd/hosts.ini
+# Save inventory to Ansible directory
+make inventory-save ENVIRONMENT=prd
 
 # 2. Create production Ansible configuration
 cd ../ansible
@@ -1467,16 +1458,16 @@ nodetool status
 cd terraform
 
 # List workspaces
-terraform workspace list
+make workspace-list
 
 # Switch to staging
-terraform workspace select stg
+make workspace-select WORKSPACE=stg
 
 # Check current workspace
-terraform workspace show
+make workspace-show
 
 # Work with specific environment
-terraform apply -var-file=stg.tfvars
+make apply ENVIRONMENT=stg
 ```
 
 **Deploy to specific environment with Ansible:**
@@ -1536,8 +1527,8 @@ Each environment appears as a separate cluster in the AxonOps Console:
 ```bash
 # Destroy lab environment
 cd terraform
-terraform workspace select lab
-terraform destroy
+make workspace-select WORKSPACE=lab
+make destroy ENVIRONMENT=lab
 
 cd ../ansible
 rm -rf group_vars/lab
@@ -1546,8 +1537,8 @@ rm -rf alerts-config/<org>/lab
 
 # Destroy staging environment
 cd terraform
-terraform workspace select stg
-terraform destroy
+make workspace-select WORKSPACE=stg
+make destroy ENVIRONMENT=stg
 
 cd ../ansible
 rm -rf group_vars/stg
