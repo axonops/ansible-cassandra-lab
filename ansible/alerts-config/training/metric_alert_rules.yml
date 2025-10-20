@@ -6,16 +6,6 @@
 
 axonops_alert_rules:
 
-######## OVERVIEW ALERTS ########
-- name: DOWN count per node
-  dashboard: Overview
-  chart: Number of Endpoints Down Per Node Point Of View
-  operator: '>='
-  critical_value: 2
-  warning_value: 1
-  duration: 15m
-  description: Detected DOWN nodes
-
 ######## SYSTEM ALERTS ########
 - name: CPU usage per host
   dashboard: System
@@ -102,13 +92,6 @@ axonops_alert_rules:
   percentile:
   - 99thPercentile
   description: Detected high LOCAL_QUORUM Coordinator Read 99thPercentile latency
-  routing:
-    error:
-    - example_pagerduty_integration_developer
-    - example_pagerduty_integration_ops
-    warning:
-    - example_pagerduty_integration_developer
-    - example_pagerduty_integration_ops
 
 - name: Coordinator Read Latency - LOCAL_ONE 99thPercentile
   dashboard: Coordinator
@@ -122,13 +105,6 @@ axonops_alert_rules:
   percentile:
   - 99thPercentile
   description: Detected high LOCAL_ONE Coordinator Read 99thPercentile latency
-  routing:
-    error:
-    - example_pagerduty_integration_developer
-    - example_pagerduty_integration_ops
-    warning:
-    - example_pagerduty_integration_developer
-    - example_pagerduty_integration_ops
 
 - name: Coordinator Range Read Latency - 99thPercentile
   dashboard: Coordinator
@@ -140,13 +116,6 @@ axonops_alert_rules:
   percentile:
   - 99thPercentile
   description: Detected high Coordinator Read 99thPercentile latency
-  routing:
-    error:
-    - example_pagerduty_integration_developer
-    - example_pagerduty_integration_ops
-    warning:
-    - example_pagerduty_integration_developer
-    - example_pagerduty_integration_ops
 
 - name: Coordinator Write Latency - LOCAL_QUORUM 99thPercentile
   dashboard: Coordinator
@@ -456,8 +425,8 @@ axonops_alert_rules:
   chart: JMX
   operator: '>='
   critical_value: 100
-  warning_value: 10
-  duration: 3m
+  warning_value: 50
+  duration: 5m
   description: 'JMX connections in Cassandra'
 
 - name: Failed Authorizations

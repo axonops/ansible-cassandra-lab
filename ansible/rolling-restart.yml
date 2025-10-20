@@ -1,4 +1,4 @@
-- name: Start or restart Cassandra and AxonOps Agent (SEEDS Only)
+- name: Start or restart Cassandra and AxonOps Agent
   hosts: "cassandra"
   become: true
   serial: 1

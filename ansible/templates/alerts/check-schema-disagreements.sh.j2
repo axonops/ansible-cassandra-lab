@@ -11,7 +11,7 @@ else
     echo "nodetool not found"
     exit $EXIT_CRITICAL
 fi
-NODETOOL="$NODETOOL -u thejmx -pwf /opt/cassandra/conf/jmxremote.password"
+NODETOOL="$NODETOOL -u {{ cassandra_jmx_user }} -pwf /opt/cassandra/conf/jmxremote.password"
 # Sleep up to 60 seconds to avoid simultaneous checks
 sleep $(shuf -i 1-60 -n 1)
 

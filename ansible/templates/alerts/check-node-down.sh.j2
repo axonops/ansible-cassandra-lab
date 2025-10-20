@@ -14,7 +14,7 @@ else
     echo "nodetool not found"
     exit $EXIT_CRITICAL
 fi
-NODETOOL="$NODETOOL -u thejmx -pwf /opt/cassandra/conf/jmxremote.password"
+NODETOOL="$NODETOOL -u {{ cassandra_jmx_user }} -pwf /opt/cassandra/conf/jmxremote.password"
 
 WARNING_DN_COUNT=1
 CRITICAL_DN_COUNT=2
