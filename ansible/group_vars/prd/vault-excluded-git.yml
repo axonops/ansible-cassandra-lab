@@ -12,3 +12,5 @@ vault_cassandra_ssl_internode_keystore_pass: changeit
 vault_cassandra_ssl_keystore_pass: changeit
 vault_cassandra_ssl_client_keystore_pass: changeit
 vault_cassandra_ssl_client_truststore_pass: changeit
+
+vault_wetty_http_password: "AxonOpsLab2025!"
