@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="https://digitalis-marketplace-assets.s3.us-east-1.amazonaws.com/AxonopsDigitalMaster_AxonopsFullLogoBlue.jpg" alt="AxonOps Workbench Icon" width="256">
+  <img src="https://digitalis-marketplace-assets.s3.us-east-1.amazonaws.com/AxonopsDigitalMaster_AxonopsFullLogoBlue.jpg" alt="AxonOps Icon" width="256">
 
-  # AxonOps Workbench
+  # AxonOps Apache Cassandra Lab
 
   **Purpose-Built Database Management Desktop App for Apache Cassandra®**
 
@@ -141,20 +141,34 @@ export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
 
 ### 3. Provision Infrastructure with Terraform
 
+> **⚠️ STATE BACKEND WARNING:** This environment uses **local Terraform state files** which are only suitable for lab environments. For staging and production environments, you **MUST** configure a [remote state backend](https://www.terraform.io/language/settings/backends) (S3, Azure Storage, Terraform Cloud, etc.) to ensure state consistency and enable team collaboration.
+
 ```bash
 cd terraform
 
 # Initialize Terraform
-make init
+make tf-init
 
 # Review what will be created
-make plan
+make tf-plan
 
 # Create infrastructure (12 nodes + bastion)
-make apply
+make tf-apply
 
-# Note: This automatically creates ansible/inventories/lab/hosts.ini
+# Save the inventory file for Ansible
+make tf-inventory-save
 ```
+
+> **📋 IMPORTANT - Ansible Inventory Management:**
+> Terraform automatically generates the Ansible inventory at `ansible/inventories/lab/hosts.ini` based on your infrastructure. This file contains all node IPs, datacenter/rack assignments, and seed node configuration.
+>
+> **You should commit this inventory file to Git** because:
+> - Ansible requires it for all subsequent deployments and configuration changes
+> - It defines your cluster topology (datacenters, racks, seed nodes)
+> - It only changes when you scale the cluster (add/remove nodes)
+> - Other team members need it to work with the same cluster
+>
+> After scaling your cluster, run `make tf-inventory-save` and commit the updated inventory file.
 
 ### 4. Configure Secrets with Ansible Vault
 
@@ -166,13 +180,72 @@ ansible-vault edit group_vars/lab/vault.yml
 ```
 
 Add the following content:
+
 ```yaml
----
-vault_axon_agent_customer_name: "your-org-name"
-vault_axon_agent_key: "your-agent-key"
+vault_axon_agent_customer_name: "example"
+vault_axon_agent_key: 248d6d04144de3f0xxxxxx # get this from https://console.axonops.cloud/
+
+vault_cassandra_ssl_internode_keystore_pass: changeit
+vault_cassandra_ssl_keystore_pass: changeit
+vault_cassandra_ssl_client_keystore_pass: changeit
+vault_cassandra_ssl_client_truststore_pass: changeit
+
 ```
 
-### 5. Deploy Cassandra Cluster
+### 5. SSL/TLS Certificate Configuration
+
+> **🔒 SECURITY BEST PRACTICE:** Apache Cassandra should **always** be configured with encryption (node-to-node and client-to-node) for production deployments.
+
+The Ansible playbook supports two SSL certificate management approaches:
+
+#### **Option A: Auto-generated Certificates (Lab/Development Only)**
+
+For lab environments, Ansible can automatically generate self-signed certificates:
+
+```yaml
+# In group_vars/lab/cassandra.yml
+cassandra_ssl_create: true
+```
+
+**What happens:**
+- Ansible generates unique SSL certificates for each Cassandra node
+- Certificates are stored locally in `ansible/files/ssl/<env>/`
+- Keystores and truststores are created automatically
+
+**Important:**
+- ✅ **Commit these files to Git** - They're needed for consistent cluster operation
+- ⚠️ **Lab environments ONLY** - Self-signed certificates are not suitable for production
+- 📁 Files are stored unencrypted in the repository for convenience
+
+#### **Option B: Managed Certificates (Staging/Production - Recommended)**
+
+For production and staging environments, use properly managed certificates:
+
+```yaml
+# In group_vars/prd/cassandra.yml
+cassandra_ssl_create: false  # Disable auto-generation
+```
+
+**Production certificate management:**
+1. **Generate certificates** using your organization's PKI/CA infrastructure
+2. **Store certificates securely** using:
+   - Ansible Vault encrypted files (`ansible-vault encrypt_string`)
+   - External secret management (HashiCorp Vault, AWS Secrets Manager, Azure Key Vault)
+   - Encrypted storage with restricted access
+3. **Place certificates** in `ansible/files/ssl/<env>/` (encrypted)
+4. **DO NOT commit unencrypted production certificates** to Git
+
+You can find more information in the [Ansible Role documentation](https://github.com/axonops/axonops-ansible-collection/blob/main/docs/roles/cassandra.md).
+
+**Example production setup:**
+```bash
+# Store passwords in vault
+ansible-vault edit group_vars/prd/ssl_vault.yml
+```
+
+> 💡 **Tip:** For production, consider certificate rotation policies and use certificates from a trusted CA rather than self-signed certificates.
+
+### 6. Deploy Cassandra Cluster
 
 ```bash
 # Install Ansible dependencies
@@ -188,18 +261,17 @@ make cassandra ENVIRONMENT=lab
 make alerts ENVIRONMENT=lab
 ```
 
-### 6. Access Your Cluster
+### 7. Access Your Cluster
 
 > **_NOTE:_** It is highly recommended or even necessary to set up `ssh-agent` to be able to SSH from the bastion to the cassandra nodes. You can read me [here](https://medium.com/@serg-digitalis/using-ssh-tunnels-for-dummies-11d7b73328ad).
 
 ```bash
 # Get bastion IP
 cd ../terraform
-make output
+make tf-output
 
 # SSH to bastion
-grep bastion ansible/inventory/${ENVIRONMWENT}/*
-make bastion-ip
+grep bastion ansible/inventory/${ENVIRONMENT}/*
 
 # Access web terminal
 https://<bastion-ip>
@@ -228,7 +300,7 @@ ansible-cassandra-lab/
 │   ├── bucket.tf                  # Object storage configuration (optional)
 │   ├── terraform.tfvars.example   # Configuration template
 │   ├── README.md                  # Terraform-specific documentation
-│   └── *.tfvars                   # Environment-specific configs (git-ignored)
+│   └── *.tfvars                   # Environment-specific configs
 │
 └── ansible/                       # Configuration Management
     ├── Makefile                   # Main entry point - run all commands from here
@@ -264,20 +336,20 @@ ansible-cassandra-lab/
     │   │   ├── cassandra.yml    # Lab-specific performance tuning
     │   │   ├── axonops.yml      # Lab organization settings
     │   │   ├── ssl.yml          # SSL/TLS configuration (optional)
-    │   │   ├── vault.yml        # Encrypted credentials (git-ignored)
-    │   │   └── ssl_vault.yml    # Encrypted SSL passwords (git-ignored)
+    │   │   ├── vault.yml        # Encrypted credentials
+    │   │   └── ssl_vault.yml    # Encrypted SSL passwords
     │   │
     │   ├── stg/                 # Staging environment overrides
     │   │   ├── cassandra.yml
     │   │   ├── axonops.yml
-    │   │   └── vault.yml        # Encrypted (git-ignored)
+    │   │   └── vault.yml        # Encrypted
     │   │
     │   └── prd/                 # Production environment overrides
     │       ├── cassandra.yml
     │       ├── axonops.yml
     │       ├── ssl.yml
-    │       ├── vault.yml        # Encrypted (git-ignored)
-    │       └── ssl_vault.yml    # Encrypted (git-ignored)
+    │       ├── vault.yml        # Encrypted
+    │       └── ssl_vault.yml    # Encrypted
     │
     ├── alerts-config/            # AxonOps monitoring (YAML-driven)
     │   └── <org-name>/          # Your organization name (e.g., "training")
@@ -340,16 +412,6 @@ ansible-cassandra-lab/
    - `ansible/alerts-config/<org>/<cluster>/backups.yml` - Backup schedules
    - `ansible/alerts-config/<org>/<cluster>/alert_routes.yml` - Alert routing
 
-**Git-Ignored Files:**
-
-These files contain sensitive data and are excluded from version control:
-- `terraform/*.tfvars` (except `.example`)
-- `terraform/.terraform/`
-- `terraform/terraform.tfstate*`
-- `ansible/group_vars/*/vault*.yml`
-- `ansible/files/ssl/` (certificates)
-- `ansible/collections/` (installed collections)
-
 ## Terraform Configuration
 
 ### Infrastructure Components
@@ -392,91 +454,75 @@ object_storage_region = "fsn1"
 
 ### Terraform Commands
 
-The project includes a comprehensive Makefile for simplified Terraform operations.
+The project includes a comprehensive Makefile for simplified Terraform operations. All Terraform targets are prefixed with `tf-`.
+
+> **⚠️ STATE BACKEND WARNING:** This setup uses **local state files** suitable **only for lab environments**. For staging/production, configure a [remote backend](https://www.terraform.io/language/settings/backends) (S3, Consul, Terraform Cloud) for state locking and team collaboration.
 
 **Quick Start:**
 ```bash
 cd terraform
 
 # See all available commands
-make help
+make tf-help
 
 # Initialize Terraform
-make init
+make tf-init
 
 # Plan changes for lab environment (default)
-make plan
+make tf-plan
 
 # Apply changes
-make apply
+make tf-apply
 
 # Plan/apply for different environments
-make plan ENVIRONMENT=stg
-make apply ENVIRONMENT=prd
+make tf-plan ENVIRONMENT=stg
+make tf-apply ENVIRONMENT=prd
 ```
 
 **Common Makefile Commands:**
 
 | Command | Description |
 |---------|-------------|
-| `make help` | Show all available commands |
-| `make init` | Initialize Terraform (download providers) |
-| `make plan` | Show execution plan |
-| `make apply` | Apply infrastructure changes |
-| `make destroy` | Destroy infrastructure |
-| `make output` | Show Terraform outputs |
-| `make console` | Open Terraform console |
-| `make validate` | Validate configuration |
-| `make fmt` | Format Terraform files |
+| `make tf-help` | Show all available commands |
+| `make tf-init` | Initialize Terraform (download providers) |
+| `make tf-plan` | Show execution plan |
+| `make tf-apply` | Apply infrastructure changes |
+| `make tf-destroy` | Destroy infrastructure |
+| `make tf-output` | Show Terraform outputs |
+| `make tf-console` | Open Terraform console |
+| `make tf-validate` | Validate configuration |
+| `make tf-fmt` | Format Terraform files |
 
 **Environment Management:**
 ```bash
 # Use different environment configurations
-make plan ENVIRONMENT=lab    # Uses lab.terraform.tfvars (default)
-make plan ENVIRONMENT=stg    # Uses stg.terraform.tfvars
-make apply ENVIRONMENT=prd   # Uses prd.terraform.tfvars
-```
-
-**Workspace Commands:**
-```bash
-make workspace-list                    # List all workspaces
-make workspace-new WORKSPACE=stg       # Create new workspace
-make workspace-select WORKSPACE=prd    # Switch workspace
-make workspace-show                    # Show current workspace
-```
-
-**Inventory Management:**
-```bash
-make inventory                # Show Ansible inventory
-make inventory-save           # Save to ../ansible/inventories/<env>/hosts.ini
-```
-
-**Setup Helpers:**
-```bash
-make setup-lab                # Create lab.terraform.tfvars from example
-make setup-stg                # Create stg.terraform.tfvars template
-make setup-prd                # Create prd.terraform.tfvars template
+make tf-plan ENVIRONMENT=lab    # Uses lab.terraform.tfvars (default)
+make tf-plan ENVIRONMENT=stg    # Uses stg.terraform.tfvars
+make tf-apply ENVIRONMENT=prd   # Uses prd.terraform.tfvars
 ```
 
 **Quick Deployment:**
+
+These are shortcuts equivalent to running all the terraform commands of a specific environment.
+
 ```bash
-make deploy-lab               # Full workflow: init → plan → apply → save inventory
-make deploy-stg               # Deploy staging (with workspace management)
-make deploy-prd               # Deploy production (with workspace management)
+make tf-deploy-lab               # Full workflow: init → plan → apply → save inventory
+make tf-deploy-stg               # Deploy staging
+make tf-deploy-prd               # Deploy production
 ```
 
 **State Management:**
 ```bash
-make state-list                        # List all resources in state
-make state-show RESOURCE=<name>        # Show specific resource details
-make refresh                           # Refresh state from real infrastructure
+make tf-state-list                        # List all resources in state
+make tf-state-show RESOURCE=<name>        # Show specific resource details
+make tf-refresh                           # Refresh state from real infrastructure
 ```
 
 **Additional Commands:**
 ```bash
-make graph                    # Generate dependency graph (requires graphviz)
-make version                  # Show Terraform version
-make clean                    # Remove .terraform cache
+make tf-graph                    # Generate dependency graph (requires graphviz)
+make tf-version                  # Show Terraform version
+make tf-clean                    # Remove .terraform cache
 ```
 
 > **Note:** All commands use the Makefile which automatically handles environment-specific configuration files. The Makefile includes safety checks for required environment variables and configuration files.
@@ -554,6 +600,7 @@ make cassandra ENVIRONMENT=prod   # For production
 
 ### Cassandra Configuration
 
+
 **Global settings** (group_vars/all/cassandra.yml):
 
 ```yaml
@@ -584,13 +631,56 @@ cassandra_concurrent_counter_writes: 32
 
 # JMX authentication
 cassandra_jmx_user: "jmxuser"
-cassandra_jmx_password: "jmxpassword"
+cassandra_jmx_password: "{{ vault_cassandra_jmx_password }}"
 
 # Network
 cassandra_listen_address: "{{ ansible_enp7s0.ipv4.address }}"
 cassandra_broadcast_rpc_address: "{{ ansible_eth0.ipv4.address }}"
 cassandra_rpc_address: 0.0.0.0
 ```
+
+> **🌐 IMPORTANT - Network Configuration:**
+> Understanding the dual-network setup is critical for proper cluster operation. This environment uses **two separate networks** with different purposes:
+
+**Network Architecture:**
+
+| Network | CIDR | Interface | Purpose | Used For |
+|---------|------|-----------|---------|----------|
+| **Private** | `10.18.0.0/16` | `enp7s0` | Inter-node communication | Gossip, replication, internal traffic |
+| **Public** | Dynamic | `eth0` | External access | Client connections, SSH, monitoring |
+
+**How Cassandra Uses Each Network:**
+
+1. **`cassandra_listen_address`** → `{{ ansible_enp7s0.ipv4.address }}` (Private network)
+   - Gossip protocol communication between Cassandra nodes
+   - Data replication and streaming between nodes
+   - Lower latency, higher bandwidth
+   - **Example:** `10.18.1.10`
+
+2. **`cassandra_broadcast_rpc_address`** → `{{ ansible_eth0.ipv4.address }}` (Public network)
+   - CQL client connections from external applications
+   - AxonOps monitoring connections
+   - Administrative access
+   - **Example:** `95.217.123.45`
+
+3. **`cassandra_rpc_address`** → `0.0.0.0`
+   - Binds CQL port 9042 to all interfaces
+   - Allows connections from both networks
+
+**Automatic Configuration via Ansible Facts:**
+
+Ansible automatically detects and configures the correct IP addresses for each node using network interface facts:
+- `ansible_enp7s0.ipv4.address` - Auto-detected private IP
+- `ansible_eth0.ipv4.address` - Auto-detected public IP
+
+This ensures consistent configuration across all nodes without manual IP management.
+
+> 💡 **Tip:** You can verify network configuration on any node with:
+> ```bash
+> ip addr show enp7s0  # Private network (10.18.x.x)
+> ip addr show eth0    # Public network
+> nodetool gossipinfo  # Shows which IPs nodes use for gossip
+> ```
 
 **Environment overrides** (group_vars/lab/cassandra.yml):
 
@@ -617,6 +707,9 @@ cassandra_seeds=10.18.1.x,10.18.1.y,10.18.1.z,10.18.1.w  # 4 seeds (2 per DC)
 ### AxonOps Configuration
 
 **Global settings** (group_vars/all/axonops.yml):
+
+> *NOTE:* The default configuration is set for AxonOps SaaS. For on-premises configuation please refer to the [AxonOps documention](https://axonops.com/docs)
+on how configure the corect host and port.
 
 ```yaml
 axon_agent_version: "2.0.9"
@@ -717,7 +810,7 @@ make alerts ENVIRONMENT=lab
 
 ## Complete Deployment Workflow
 
-### Phase 1: Infrastructure Setup
+### Phase 1: Infrastructure Setup with Terraform
 
 ```bash
 # 1. Export Hetzner Cloud token
@@ -731,16 +824,16 @@ cp terraform.tfvars.example terraform.tfvars
 vim terraform.tfvars  # Edit with your preferences
 
 # 4. Initialize Terraform
-make init
+make tf-init
 
 # 5. Deploy infrastructure
-make apply
+make tf-apply
 
 # 6. Save inventory to Ansible directory
-make inventory-save
+make tf-inventory-save
 
 # 7. View outputs (bastion IP, node IPs, etc.)
-make output
+make tf-output
 ```
 
 ### Phase 2: Prepare Ansible Configuration
@@ -779,7 +872,7 @@ make common ENVIRONMENT=lab
 # - OS security hardening
 # - chrony (NTP)
 # - nginx, curl, jq, unzip
-# - Wetty web terminal at https://<bastion-ip>
+# - Wetty web terminal at https://<bastion-ip>/wetty
 # - CQLAI on bastion
 # - Hosts file configuration
 ```
@@ -800,6 +893,15 @@ make cassandra ENVIRONMENT=lab
 
 ### Phase 5: Monitoring Setup
 
+The credentials can be configured in two different ways. The prefered option is to use Ansible Vault with 
+
+```yaml
+vault_axon_agent_customer_name: your-org
+vault_axon_token: token
+```
+
+or with env variables:
+
 ```bash
 # 1. Set AxonOps API credentials
 export AXONOPS_ORG="your-org-name"
@@ -817,7 +919,7 @@ make alerts ENVIRONMENT=lab
 
 ```bash
 # 1. Access bastion
-ssh -i ../terraform/ssh_key root@<bastion-ip>
+ssh root@<bastion-ip>
 
 # 2. Check cluster status from bastion
 ssh root@10.18.1.x  # Any Cassandra node private IP
@@ -833,7 +935,8 @@ nodetool status
 # (6 nodes in dc1, 6 in dc2)
 
 # 3. Test CQL access
-cqlsh --ssl
+cqlsh
+cqlai
 # Connected to lab at 10.18.1.x:9042
 
 # 4. Check AxonOps agent
@@ -850,11 +953,12 @@ systemctl status axon-agent
 Update Cassandra configuration without reinstalling:
 
 ```bash
+cd ansible
+
 # 1. Edit configuration
 vim group_vars/lab/cassandra.yml
 
 # 2. Apply only config changes (no restart)
-cd ansible
 make cassandra ENVIRONMENT=lab EXTRA="--tags config"
 
 # 3. Perform rolling restart
@@ -891,12 +995,9 @@ vim main.tf
 # You may need additional placement groups for dc3 or more racks
 
 # 3. Apply infrastructure changes
-make apply
+make tf-apply
 
-# 4. Save updated inventory
-make inventory-save
-
-# 5. Deploy Cassandra to all nodes (including new ones)
+# 4. Deploy Cassandra to all nodes (including new ones)
 cd ../ansible
 make cassandra ENVIRONMENT=lab
 
@@ -936,7 +1037,7 @@ make cassandra ENVIRONMENT=lab EXTRA="--tags ssl,config"
 make rolling-restart ENVIRONMENT=lab
 ```
 
-### Backup Configuration
+### AxonOps Backup Configuration
 
 Edit `alerts-config/<org>/<cluster>/backups.yml`:
 
@@ -1035,7 +1136,7 @@ Each node runs Wetty for browser-based SSH access:
 
 **Access:**
 ```
-URL: https://<node-public-ip>
+URL: https://<node-public-ip>/wetty
 Username: wetty (configurable)
 Password: (must be set in vault)
 ```
@@ -1089,15 +1190,11 @@ vault_wetty_http_password: "your-secure-password-here"
 
 **Problem:** Can't SSH to instances
 ```bash
-# Check SSH key permissions
-ls -la terraform/ssh_key
-chmod 600 terraform/ssh_key
-
 # Verify your IP is in allowed_cidrs
-make output
+make tf-output
 
 # Test connection
-ssh -i terraform/ssh_key -v root@<bastion-ip>
+ssh root@<bastion-ip>
 ```
 
 **Problem:** Placement group errors
@@ -1110,7 +1207,7 @@ ssh -i terraform/ssh_key -v root@<bastion-ip>
 ```bash
 # Manually trigger
 cd terraform
-make inventory-save
+make tf-inventory-save
 ```
 
 ### Ansible Issues
@@ -1128,14 +1225,14 @@ ansible-vault view group_vars/lab/vault.yml
 **Problem:** "Failed to connect to host"
 ```bash
 # Check SSH connectivity
-ssh -i ../terraform/ssh_key root@<node-ip>
+ssh root@<node-ip>
 
 # Verify inventory
 cat inventories/lab/hosts.ini
 
 # Check firewall rules (ensure your IP is in allowed_cidrs)
 cd ../terraform
-make output
+make tf-output
 ```
 
 **Problem:** AxonOps agent not connecting
@@ -1231,7 +1328,7 @@ nodetool tablestats <keyspace>.<table>
 ```bash
 # Verify firewall allows your IP
 cd terraform
-make output
+make tf-output
 
 # Test connectivity
 nc -zv <node-ip> 9042
@@ -1262,21 +1359,20 @@ This project supports multiple isolated environments (lab, staging, production) 
 - AxonOps cluster monitoring
 - Network isolation
 
+> **⚠️ STATE BACKEND WARNING:** For production and staging environments, you **MUST** configure a [remote state backend](https://www.terraform.io/language/settings/backends) instead of using local state files. Remote backends provide state locking, versioning, and team collaboration capabilities.
+
 ### Environment Naming Convention
 
 We recommend using short environment codes:
-- `lab` - Development/testing environment (default)
-- `stg` - Staging environment for pre-production testing
-- `prd` - Production environment
+- `lab` - Development/testing environment (default) - local state OK
+- `stg` - Staging environment for pre-production testing - **requires remote state**
+- `prd` - Production environment - **requires remote state**
 
 ### Creating a Staging Environment
 
 ```bash
 # 1. Create staging infrastructure with Terraform
 cd terraform
-
-# Create a new Terraform workspace for isolation
-make workspace-new WORKSPACE=stg
 
 # Create staging configuration
 cat > stg.tfvars <<EOF
@@ -1289,10 +1385,7 @@ ssh_keys = []
 EOF
 
 # Deploy staging infrastructure
-make apply ENVIRONMENT=stg
-
-# Save inventory to Ansible directory
-make inventory-save ENVIRONMENT=stg
+make tf-apply ENVIRONMENT=stg
 
 # 2. Create staging Ansible configuration
 cd ../ansible
@@ -1329,19 +1422,18 @@ make cassandra ENVIRONMENT=stg
 make alerts ENVIRONMENT=stg
 
 # 5. Verify staging cluster
-ssh -i ../terraform/ssh_key root@<stg-bastion-ip>
+ssh root@<stg-bastion-ip>
 ssh root@<stg-node-private-ip>
 nodetool status
 ```
 
 ### Creating a Production Environment
 
+> **⚠️ CRITICAL:** Before deploying production, configure a [remote state backend](https://www.terraform.io/language/settings/backends) in your Terraform configuration to prevent state conflicts and data loss.
+
 ```bash
 # 1. Create production infrastructure with Terraform
 cd terraform
-
-# Create production workspace
-make workspace-new WORKSPACE=prd
 
 # Create production configuration with larger instances
 cat > prd.tfvars <<EOF
@@ -1354,10 +1446,10 @@ ssh_keys = ["prod-ssh-key"]       # Use existing SSH key for security
 EOF
 
 # Deploy production infrastructure
-make apply ENVIRONMENT=prd
+make tf-apply ENVIRONMENT=prd
 
 # Save inventory to Ansible directory
-make inventory-save ENVIRONMENT=prd
+make tf-inventory-save ENVIRONMENT=prd
 
 # 2. Create production Ansible configuration
 cd ../ansible
@@ -1425,7 +1517,7 @@ make cassandra ENVIRONMENT=prd
 make alerts ENVIRONMENT=prd
 
 # 5. Verify production cluster
-ssh -i ../terraform/ssh_key root@<prd-bastion-ip>
+ssh root@<prd-bastion-ip>
 ssh root@<prd-node-private-ip>
 nodetool status
 
@@ -1450,21 +1542,21 @@ nodetool status
 
 ### Managing Multiple Environments
 
-**Switch between Terraform workspaces:**
+**Work with specific Terraform environment:**
 ```bash
 cd terraform
 
-# List workspaces
-make workspace-list
+# Work with lab environment (default, local state)
+make tf-plan ENVIRONMENT=lab
+make tf-apply ENVIRONMENT=lab
 
-# Switch to staging
-make workspace-select WORKSPACE=stg
+# Work with staging environment (should use remote state)
+make tf-plan ENVIRONMENT=stg
+make tf-apply ENVIRONMENT=stg
 
-# Check current workspace
-make workspace-show
-
-# Work with specific environment
-make apply ENVIRONMENT=stg
+# Work with production environment (should use remote state)
+make tf-plan ENVIRONMENT=prd
+make tf-apply ENVIRONMENT=prd
 ```
 
 **Deploy to specific environment with Ansible:**
@@ -1490,9 +1582,12 @@ Each environment appears as a separate cluster in the AxonOps Console:
 
 ### Best Practices for Multiple Environments
 
-1. **Terraform State Isolation**
-   - Use separate workspaces or remote backends per environment
-   - Never share state between environments
+1. **Terraform State Management**
+   - Lab: Local state files are acceptable for development/testing
+   - Staging/Production: **MUST use remote state backend** (S3, Azure Storage, Terraform Cloud, etc.)
+   - Configure state locking to prevent concurrent modifications
+   - Enable state versioning for rollback capability
+   - Never commit state files to version control
 
 2. **Credentials Management**
    - Use separate vault files per environment
@@ -1524,8 +1619,7 @@ Each environment appears as a separate cluster in the AxonOps Console:
 ```bash
 # Destroy lab environment
 cd terraform
-make workspace-select WORKSPACE=lab
-make destroy ENVIRONMENT=lab
+make tf-destroy ENVIRONMENT=lab
 
 cd ../ansible
 rm -rf group_vars/lab
@@ -1534,8 +1628,7 @@ rm -rf alerts-config/<org>/lab
 
 # Destroy staging environment
 cd terraform
-make workspace-select WORKSPACE=stg
-make destroy ENVIRONMENT=stg
+make tf-destroy ENVIRONMENT=stg
 
 cd ../ansible
 rm -rf group_vars/stg

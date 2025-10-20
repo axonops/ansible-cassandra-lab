@@ -10,7 +10,7 @@ ENVIRONMENT ?= lab
 EXTRA ?= "-e makefile=true"
 # Bug running on OSX
 OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-#ANSIBLE_VAULT_PASSWORD_FILE ?= ~/.ansible_vault_pass
+ANSIBLE_VAULT_PASSWORD_FILE ?= ~/.ansible_vault_pass_$(ENVIRONMENT)
 INVENTORY=inventories/$(ENVIRONMENT)/hosts.ini
 ANSIBLE_USER ?= root
 
@@ -56,6 +56,11 @@ alerts: check-env-alerts ## Sets up AxonOps alerts
 	@${PIPENVCMD} ansible-playbook -i $(INVENTORY) alerts.yml --diff ${EXTRA} \
 		-u ${ANSIBLE_USER} \
 		-e env=${ENVIRONMENT} --connection=local
+
+backups: check-env-alerts ## Sets up AxonOps backups
+	@${PIPENVCMD} ansible-playbook -i $(INVENTORY) alerts.yml --diff ${EXTRA} \
+		-u ${ANSIBLE_USER} \
+		-e env=${ENVIRONMENT} --connection=local --tags backups
 
 rolling-restart: check-env ## Performs a rolling restart of the Cassandra Cluster
 	@${PIPENVCMD} ansible-playbook -i $(INVENTORY) rolling-restart.yml ${EXTRA} \

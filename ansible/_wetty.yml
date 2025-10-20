@@ -15,6 +15,7 @@
     ssh_key_comment: "wetty@{{ inventory_hostname }}"
     ssh_key_type: ed25519
     generate_ssh_key: true
+    groups: axonops,cassandra
 
 - name: Create /home/wetty/.cassandra
   ansible.builtin.file:
