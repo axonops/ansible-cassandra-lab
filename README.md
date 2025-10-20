@@ -1,3 +1,15 @@
+<div align="center">
+  <img src="rhttps://digitalis-marketplace-assets.s3.us-east-1.amazonaws.com/AxonopsDigitalMaster_AxonopsFullLogoBlue.jpg" alt="AxonOps Workbench Icon" width="256">
+
+  # AxonOps Workbench
+
+  **Purpose-Built Database Management Desktop App for Apache Cassandra®**
+
+  [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+  [![GitHub Issues](https://img.shields.io/github/issues/axonops/ansible-cassandra-lab)](https://github.com/axonops/ansible-cassandra-lab/issues)
+  [![GitHub Discussions](https://img.shields.io/github/discussions/axonops/ansible-cassandra-lab)](https://github.com/axonops/ansible-cassandra-lab/discussions)
+</div>
+
 # Apache Cassandra Lab Environment
 
 Production-grade multi-datacenter Apache Cassandra cluster deployment on Hetzner Cloud with AxonOps monitoring. This project combines Terraform for infrastructure provisioning and Ansible for automated configuration management.
@@ -6,7 +18,7 @@ Production-grade multi-datacenter Apache Cassandra cluster deployment on Hetzner
 
 This lab environment provides:
 
-- **Multi-datacenter Cassandra cluster** with configurable node count (currently 12 nodes, scalable to 15+)
+- **Multi-datacenter Cassandra cluster** with configurable node count (currently 12 nodes)
 - **Infrastructure as Code** using Terraform for Hetzner Cloud
 - **Configuration Management** using Ansible with AxonOps collection
 - **Production features**: SSL/TLS encryption, authentication, audit logging, monitoring
@@ -19,23 +31,23 @@ This lab environment provides:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              Hetzner Cloud Infrastructure                    │
-│                                                               │
+│              Hetzner Cloud Infrastructure                   │
+│                                                             │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Private Network (10.18.0.0/16)                      │   │
-│  │                                                        │   │
+│  │                                                      │   │
 │  │  Datacenter dc1          Datacenter dc2              │   │
 │  │  ┌──────────┐             ┌──────────┐               │   │
 │  │  │ rack1 (2)│             │ rack1 (2)│               │   │
 │  │  │ rack2 (2)│             │ rack2 (2)│               │   │
 │  │  │ rack3 (2)│             │ rack3 (2)│               │   │
 │  │  └──────────┘             └──────────┘               │   │
-│  │  6 nodes                  6 nodes                     │   │
+│  │  6 nodes                  6 nodes                    │   │
 │  └──────────────────────────────────────────────────────┘   │
-│                                                               │
-│  ┌──────────────┐                                            │
-│  │   Bastion    │ (SSH + WireGuard VPN + Web Terminal)     │
-│  └──────────────┘                                            │
+│                                                             │
+│  ┌──────────────┐                                           │
+│  │   Bastion    │ (SSH + WireGuard VPN + Web Terminal)      │
+│  └──────────────┘                                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -1117,34 +1129,22 @@ cassandra_commitlog_total_space_in_mb: 8192
 cassandra_memtable_flush_writers: 4
 ```
 
-## Cost Estimation
-
-**Default lab setup (12 nodes + bastion):**
-
-| Resource | Type | Quantity | Price/month | Total |
-|----------|------|----------|-------------|-------|
-| Cassandra nodes | cpx31 (4 vCPU, 8GB) | 12 | €12.50 | €150.00 |
-| Bastion | cpx11 (2 vCPU, 2GB) | 1 | €4.50 | €4.50 |
-| Private network | 10.18.0.0/16 | 1 | €0.00 | €0.00 |
-| **Total** | | | | **€154.50/month** |
-
-**15-node setup:**
-- 15× cpx31 + bastion: ~€192/month
-
-*Prices as of 2024, check [Hetzner Pricing](https://www.hetzner.com/cloud#pricing)*
-
 ## Additional Resources
 
 - **AxonOps Documentation**: [docs.axonops.com](https://docs.axonops.com)
 - **AxonOps Console**: [console.axonops.cloud](https://console.axonops.cloud)
-- **Apache Cassandra Docs**: [cassandra.apache.org/doc/5.0](https://cassandra.apache.org/doc/5.0/)
-- **Hetzner Cloud Docs**: [docs.hetzner.com](https://docs.hetzner.com/)
 - **Ansible AxonOps Collection**: [galaxy.ansible.com/axonops/axonops](https://galaxy.ansible.com/axonops/axonops)
 
 ## License
 
 See LICENSE file.
 
----
+***
 
-**Built for production-grade Cassandra deployments with AxonOps monitoring**
+## 📄 Legal Notices
+
+*This project may contain trademarks or logos for projects, products, or services. Any use of third-party trademarks or logos are subject to those third-party's policies.*
+
+- **AxonOps** is a registered trademark of AxonOps Limited.
+- **Apache**, **Apache Cassandra**, **Cassandra**, **Apache Spark**, **Spark**, **Apache TinkerPop**, **TinkerPop**, **Apache Kafka** and **Kafka** are either registered trademarks or trademarks of the Apache Software Foundation or its subsidiaries in Canada, the United States and/or other countries.
+- **DataStax** is a registered trademark of DataStax, Inc. and its subsidiaries in the United States and/or other countries.
