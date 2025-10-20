@@ -101,6 +101,47 @@ This lab environment provides:
 | [Pipenv](https://pipenv.pypa.io/) | Latest | Python dependency management |
 | SSH | Any | Server access |
 
+### Python Environment Management
+
+> **📦 Python Dependency Management:**
+> This project uses **Pipenv** by default to manage Ansible and Python dependencies in an isolated virtual environment. This ensures consistent versions across all team members and prevents conflicts with system packages.
+
+**Using Pipenv (Recommended):**
+```bash
+# Install dependencies (done automatically by Makefile)
+cd ansible
+pipenv install
+
+# All make commands use pipenv automatically
+make prep
+make cassandra ENVIRONMENT=lab
+```
+
+**Using System Python or venv (Alternative):**
+
+If you prefer to use your system Python installation or manage your own virtual environment, you can disable Pipenv:
+
+```bash
+# Disable Pipenv for the current session
+export PIPENVCMD=""
+export PIPENV=false
+
+# Then use make commands as normal
+cd ansible
+make prep
+```
+
+**When to disable Pipenv:**
+- CI/CD pipelines with pre-configured Python environments
+- Container-based deployments with dependencies pre-installed
+- System-wide Ansible installations in production automation servers
+- Custom virtual environment management with `venv` or `conda`
+
+> 💡 **Tip:** If you disable Pipenv, ensure you manually install the required Python packages:
+> ```bash
+> pip install -r ansible/requirements.txt
+> ```
+
 ### Install Dependencies
 
 ```bash
@@ -143,6 +184,76 @@ export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
 
 > **⚠️ STATE BACKEND WARNING:** This environment uses **local Terraform state files** which are only suitable for lab environments. For staging and production environments, you **MUST** configure a [remote state backend](https://www.terraform.io/language/settings/backends) (S3, Azure Storage, Terraform Cloud, etc.) to ensure state consistency and enable team collaboration.
 
+> **☁️ CLOUD PROVIDER NOTE:** This lab environment uses Hetzner Cloud. With minimal effort, the Terraform code can be adapted to create infrastructure on any other cloud provider (AWS, Azure, GCP) or even on-premises. The Ansible playbooks will remain the same regardless of where the infrastructure is provisioned.
+
+#### SSH Key Configuration
+
+> **🔑 SSH Key Management:**
+> Terraform can either use existing SSH keys from your Hetzner Cloud account or automatically generate new ones. Choose the approach that fits your workflow.
+
+**Option 1: Use Existing Hetzner SSH Keys (Recommended for Teams)**
+
+If you already have SSH keys configured in your Hetzner Cloud project:
+
+```hcl
+# In terraform/terraform.tfvars
+ssh_keys = ["my-ssh-key"]  # Name of your existing Hetzner SSH key
+```
+
+**Benefits:**
+- ✅ Use your existing SSH keys
+- ✅ Keys are managed centrally in Hetzner
+- ✅ Multiple team members can use the same key
+- ✅ No local key files to manage
+
+**Option 2: Auto-Generate SSH Keys (Default - Easy for Lab)**
+
+If you don't specify SSH keys, Terraform will automatically generate a new key pair:
+
+```hcl
+# In terraform/terraform.tfvars
+ssh_keys = []  # Empty array = auto-generate keys
+```
+
+**What happens:**
+- New SSH key pair generated in `terraform/ssh_key` (private) and `terraform/ssh_key.pub` (public)
+- Private key has permissions automatically set to `600`
+- Key is uploaded to your Hetzner project
+- All infrastructure uses this key
+
+**Using the Auto-Generated Key:**
+
+After Terraform creates the infrastructure, you need to use the generated key for SSH access:
+
+```bash
+# Option A: Add to ssh-agent (recommended - works automatically)
+eval $(ssh-agent)
+ssh-add terraform/ssh_key
+
+# Verify it's loaded
+ssh-add -l
+
+# Now SSH works without specifying the key
+ssh root@<node-ip>
+```
+
+```bash
+# Option B: Specify key with each SSH command
+ssh -i terraform/ssh_key root@<bastion-ip>
+ssh -i terraform/ssh_key root@<node-ip>
+```
+
+> ⚠️ **IMPORTANT:** Do NOT commit `terraform/ssh_key` (private key) to Git. The `.gitignore` file excludes it by default.
+
+**Comparison:**
+
+| Aspect | Existing Keys | Auto-Generated Keys |
+|--------|---------------|---------------------|
+| Setup | Configure in Hetzner first | Automatic |
+| Team Use | ✅ Multiple users | ❌ Single user |
+| Management | Centralized | Local file |
+| Best For | Production, Teams | Lab, Solo development |
+
 ```bash
 cd terraform
 
@@ -154,9 +265,6 @@ make tf-plan
 
 # Create infrastructure (12 nodes + bastion)
 make tf-apply
-
-# Save the inventory file for Ansible
-make tf-inventory-save
 ```
 
 > **📋 IMPORTANT - Ansible Inventory Management:**
@@ -684,6 +792,13 @@ This ensures consistent configuration across all nodes without manual IP managem
 
 **Environment overrides** (group_vars/lab/cassandra.yml):
 
+> **📁 ANSIBLE ORGANIZATION PATTERN:**
+> Ansible variables follow a hierarchical override pattern:
+> - **`group_vars/all/`** - Contains settings **common to all environments** (lab, stg, prd)
+> - **`group_vars/<env>/`** - Contains **environment-specific overrides** for that environment
+>
+> This pattern allows you to define defaults once in `all/` and override only what's different per environment. For example, heap size, performance tuning, and cluster names are typically environment-specific, while default ports and paths remain the same.
+
 ```yaml
 # Auto-sizing heap (50% of RAM, max 40GB)
 cassandra_max_heap_size: "{% if (ansible_memtotal_mb * 0.5 / 1024) | round | int > 40 %}40{% else %}{{ (ansible_memtotal_mb * 0.5 / 1024) | round | int }}{% endif %}G"
@@ -807,6 +922,8 @@ Apply monitoring configuration:
 cd ansible
 make alerts ENVIRONMENT=lab
 ```
+
+> Full documentation on alerts can be found [here](https://github.com/axonops/axonops-ansible-collection/blob/main/docs/roles/alerts.md)
 
 ## Complete Deployment Workflow
 
@@ -1070,7 +1187,7 @@ axonops_backups:
 
 Apply:
 ```bash
-make alerts ENVIRONMENT=lab
+make backups ENVIRONMENT=lab
 ```
 
 ### Ad-Hoc Commands
@@ -1130,7 +1247,7 @@ After wiping, redeploy:
 make cassandra ENVIRONMENT=lab
 ```
 
-## Web Terminal Access
+## Web Terminal Access (LAB Environment ONLY!)
 
 Each node runs Wetty for browser-based SSH access:
 
