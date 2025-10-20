@@ -4,6 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+ansible = "==2.10"
+passlib = "*"
 
 [dev-packages]
 
