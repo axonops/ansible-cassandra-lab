@@ -65,3 +65,9 @@ variable "object_storage_secret_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "allowed_cidrs_cassandra" {
+  description = "Additional CIDR blocks allowed to access CQL and JMX ports for Cassandra nodes"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}

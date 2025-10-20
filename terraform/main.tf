@@ -118,7 +118,7 @@ resource "hcloud_firewall" "cassandra" {
     direction  = "in"
     protocol   = "tcp"
     port       = "9042"
-    source_ips = var.allowed_cidrs
+    source_ips = var.allowed_cidrs_cassandra
   }
 
   rule {

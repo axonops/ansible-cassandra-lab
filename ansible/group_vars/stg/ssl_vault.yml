@@ -1,0 +1,39 @@
+# This file contains sensitive information and should be protected.
+# Use Ansible Vault to encrypt this file.
+
+# vault_ssl_key: |
+#   Bag Attributes
+#       friendlyName: cassandra.example.com
+#       localKeyID: 54 69 6D 65 20 31 37 34 39 38 32 37 31 34 32 34 39 37
+#   Key Attributes: <No Attributes>
+#   -----BEGIN PRIVATE KEY-----
+#   MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCS+ON15uGOPu1W
+#   [...]
+#   -----END PRIVATE KEY-----
+
+# vault_ssl_crt: |
+#   -----BEGIN CERTIFICATE-----
+#   MIIDXzCCAkcCFBEPu+zMKZaqTewnocE00x/dRhNpMA0GCSqGSIb3DQEBCwUAMFMx
+#   [...]
+#   0+QQND6YHhkQo8pQgdroXSVsNHgq9kNx5QKx+I8s5R2zdZbbHRNlcOg0BmP0f6OT
+#   hpWu
+#   -----END CERTIFICATE-----
+
+# vault_ca_key: |
+#   -----BEGIN PRIVATE KEY-----
+#   MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCOGL1db6Ct5Frc
+#   XeVN4ZvLciIP9cRtZ97USdyZ1H0Q8k19AUnbzoHpG6Jjjbrsa0ZvL3k8YOYIRKkM
+#   [...]
+#   lBNGeA2zOkTO9fpBoJfqS8VJUJXQnrh6OJdFjIELaa8s00zw/UMiPqDAvmiRXEQZ
+#   wp51emFK4heEInuOFQwE4xQ=
+#   -----END PRIVATE KEY-----
+
+# vault_ca_crt: |
+#   -----BEGIN CERTIFICATE-----
+#   MIIDLTCCAhUCFHx+cHGEYcIxkejddtZNq4zR5X09MA0GCSqGSIb3DQEBCwUAMFMx
+#   CzAJBgNVBAYTAkdCMR0wGwYDVQQKDBRkaWdpdGFsaXMuaW8gTGltaXRlZDEUMBIG
+#   [...]
+#   l8fc5fngb4Gai8QYIXVvzDFDWDHAuALEZqRZfmtY33PYiikBA/noSSvORHRY0wBN
+#   zvET1HUng/kJcsj8ddSGiCukARt3TPUPMampZGd+7G4pLvguWG97cqlt+7LWhnXa
+#   vQ==
+#   -----END CERTIFICATE-----
