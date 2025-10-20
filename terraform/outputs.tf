@@ -7,7 +7,7 @@ output "ssh_key_path" {
 # Ansible inventory snippet
 output "ansible_inventory" {
   description = "Ansible inventory snippet for the cluster"
-  value       = <<-EOT
+  value = <<-EOT
 [bastion]
 ${hcloud_server.bastion.ipv4_address} ansible_host=${hcloud_server.bastion.ipv4_address} ansible_user=root
 
@@ -29,7 +29,7 @@ cassandra_seeds=${join(",", concat(
 
 resource "local_file" "inventory" {
   filename = "../ansible/inventories/lab/hosts.ini"
-  content  = <<-EOT
+  content = <<-EOT
 [bastion]
 ${hcloud_server.bastion.ipv4_address} ansible_host=${hcloud_server.bastion.ipv4_address} ansible_user=root
 

@@ -11,4 +11,3 @@ axonops_alert_routes: []
 #   type: global
 #   severity: info
 #   enable_override: false
-

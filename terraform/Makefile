@@ -5,7 +5,7 @@
 #
 .ONESHELL:
 .SHELL := /bin/bash
-.PHONY: tf-help tf-init tf-plan tf-apply tf-destroy tf-output tf-console tf-validate tf-fmt tf-clean tf-workspace-list tf-workspace-new tf-workspace-select
+.PHONY: help tf-init tf-plan tf-apply tf-destroy tf-output tf-console tf-validate tf-fmt tf-clean tf-workspace-list tf-workspace-new tf-workspace-select
 .EXPORT_ALL_VARIABLES:
 
 # Default environment
@@ -21,7 +21,7 @@ YELLOW := \033[0;33m
 BLUE := \033[0;36m
 RESET := \033[0m
 
-tf-help: ## Show this help message
+help: ## Show this help message
 	@echo "$(BLUE)Terraform Makefile - Environment: $(ENVIRONMENT)$(RESET)"
 	@echo ""
 	@echo "Usage:"
@@ -102,28 +102,10 @@ tf-output: ## Show Terraform outputs
 tf-output-json: ## Show Terraform outputs in JSON format
 	terraform output -json
 
-tf-show: ## Show Terraform state
-	terraform show
-
 tf-console: tf-check-tfvars ## Open Terraform console with environment variables
 	@echo "$(BLUE)Opening Terraform console for $(ENVIRONMENT)...$(RESET)"
 	@echo "Tip: Try 'var.environment' or 'var.server_type'"
 	terraform console -var-file=$(TFVARS_FILE)
-
-tf-refresh: tf-check-env tf-check-tfvars ## Refresh Terraform state
-	@echo "$(BLUE)Refreshing Terraform state for $(ENVIRONMENT)...$(RESET)"
-	terraform refresh -var-file=$(TFVARS_FILE)
-
-tf-state-list: ## List resources in Terraform state
-	terraform state list
-
-tf-state-show: ## Show a specific resource (usage: make tf-state-show RESOURCE=hcloud_server.bastion)
-	@if [ -z "$(RESOURCE)" ]; then \
-		echo "$(RED)ERROR: RESOURCE not specified$(RESET)"; \
-		echo "Usage: make tf-state-show RESOURCE=hcloud_server.bastion"; \
-		exit 1; \
-	fi
-	terraform state show $(RESOURCE)
 
 # Inventory management
 tf-inventory: ## Show Ansible inventory for current environment

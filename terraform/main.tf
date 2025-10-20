@@ -195,12 +195,12 @@ resource "hcloud_placement_group" "cassandra_dc2_rack3" {
 resource "hcloud_server" "cassandra" {
   count = 12
 
-  name               = "${local.name_prefix}-${format("%03d", count.index + 1)}"
-  server_type        = var.server_type
-  location           = var.location
-  image              = var.image
-  ssh_keys           = local.ssh_key_ids
-  firewall_ids       = [hcloud_firewall.cassandra.id]
+  name         = "${local.name_prefix}-${format("%03d", count.index + 1)}"
+  server_type  = var.server_type
+  location     = var.location
+  image        = var.image
+  ssh_keys     = local.ssh_key_ids
+  firewall_ids = [hcloud_firewall.cassandra.id]
 
   # Assign placement group based on DC and rack
   # DC1: nodes 0-5, DC2: nodes 6-11
@@ -209,7 +209,7 @@ resource "hcloud_server" "cassandra" {
     count.index < 2 ? hcloud_placement_group.cassandra_dc1_rack1.id :
     count.index < 4 ? hcloud_placement_group.cassandra_dc1_rack2.id :
     hcloud_placement_group.cassandra_dc1_rack3.id
-  ) : (
+    ) : (
     count.index < 8 ? hcloud_placement_group.cassandra_dc2_rack1.id :
     count.index < 10 ? hcloud_placement_group.cassandra_dc2_rack2.id :
     hcloud_placement_group.cassandra_dc2_rack3.id
@@ -260,5 +260,5 @@ resource "hcloud_firewall_attachment" "cassandra_internode" {
   firewall_id = hcloud_firewall.cassandra_internode.id
   server_ids  = [for server in hcloud_server.cassandra : server.id]
 
-  depends_on = [ hcloud_firewall.cassandra ]
+  depends_on = [hcloud_firewall.cassandra]
 }

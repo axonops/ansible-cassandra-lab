@@ -85,7 +85,7 @@ This lab environment provides:
    - Navigate to https://console.axonops.cloud/
    - Use the left menu to select the _Agent Setup_
    - Copy your agent key
-   
+
    **Step 4: Get API Token (for alerts)**
    - Navigate to API Tokens
    - Click "Create a New Token"
@@ -1028,7 +1028,7 @@ make cassandra ENVIRONMENT=lab
 
 ### Phase 5: Monitoring Setup
 
-The credentials can be configured in two different ways. The prefered option is to use Ansible Vault with 
+The credentials can be configured in two different ways. The prefered option is to use Ansible Vault with
 
 ```yaml
 vault_axon_agent_customer_name: your-org
