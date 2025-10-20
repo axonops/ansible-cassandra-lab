@@ -190,20 +190,23 @@ make alerts ENVIRONMENT=lab
 
 ### 6. Access Your Cluster
 
+> **_NOTE:_** It is highly recommended or even necessary to set up `ssh-agent` to be able to SSH from the bastion to the cassandra nodes. You can read me [here](https://medium.com/@serg-digitalis/using-ssh-tunnels-for-dummies-11d7b73328ad).
+
 ```bash
 # Get bastion IP
 cd ../terraform
 make output
 
-# SSH to bastion (or use make ssh-bastion)
-make ssh-bastion
+# SSH to bastion
+grep bastion ansible/inventory/${ENVIRONMWENT}/*
+make bastion-ip
 
 # Access web terminal
 https://<bastion-ip>
 # Username: (configured in group_vars/all/wetty.yml)
 # Password: (set in group_vars/<env>/vault.yml as vault_wetty_http_password)
 
-# From bastion, connect to any Cassandra node
+# From bastion, connect to any Cassandra node See note about ssh-agent above ⬆️
 ssh root@<node-private-ip>
 
 # Check cluster status
@@ -446,12 +449,6 @@ make workspace-show                    # Show current workspace
 ```bash
 make inventory                # Show Ansible inventory
 make inventory-save           # Save to ../ansible/inventories/<env>/hosts.ini
-```
-
-**SSH Helpers:**
-```bash
-make ssh-bastion              # SSH to bastion host
-make ssh-node NODE=1          # SSH to Cassandra node 1 via bastion
 ```
 
 **Setup Helpers:**

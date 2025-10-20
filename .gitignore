@@ -41,3 +41,6 @@ ansible/inventories/lab/hosts.ini
 ansible/files/ssl/lab/
 
 ansible/.env
+
+ansible/collections
+ansible/roles

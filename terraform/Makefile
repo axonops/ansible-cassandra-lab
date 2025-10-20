@@ -176,33 +176,6 @@ inventory-save: ## Save Ansible inventory to file
 	terraform output -raw ansible_inventory > ../ansible/inventories/$(ENVIRONMENT)/hosts.ini
 	@echo "$(GREEN)✓ Inventory saved$(RESET)"
 
-# SSH helpers
-ssh-bastion: ## SSH to bastion host
-	@BASTION_IP=$$(terraform output -json | jq -r '.bastion_ip.value // empty'); \
-	if [ -z "$$BASTION_IP" ]; then \
-		echo "$(RED)ERROR: Bastion IP not found. Has infrastructure been deployed?$(RESET)"; \
-		exit 1; \
-	fi; \
-	SSH_KEY=$$(terraform output -raw ssh_key_path 2>/dev/null || echo "ssh_key"); \
-	echo "$(BLUE)Connecting to bastion: $$BASTION_IP$(RESET)"; \
-	ssh -i $$SSH_KEY root@$$BASTION_IP
-
-ssh-node: ## SSH to a Cassandra node via bastion (usage: make ssh-node NODE=1)
-	@if [ -z "$(NODE)" ]; then \
-		echo "$(RED)ERROR: NODE not specified$(RESET)"; \
-		echo "Usage: make ssh-node NODE=1"; \
-		exit 1; \
-	fi; \
-	NODE_IP=$$(terraform output -json | jq -r ".cassandra_nodes.value[$(NODE)-1].private_ip // empty"); \
-	if [ -z "$$NODE_IP" ]; then \
-		echo "$(RED)ERROR: Node $(NODE) not found$(RESET)"; \
-		exit 1; \
-	fi; \
-	BASTION_IP=$$(terraform output -json | jq -r '.bastion_ip.value // empty'); \
-	SSH_KEY=$$(terraform output -raw ssh_key_path 2>/dev/null || echo "ssh_key"); \
-	echo "$(BLUE)Connecting to node $(NODE) ($$NODE_IP) via bastion$$RESET)"; \
-	ssh -i $$SSH_KEY -J root@$$BASTION_IP root@$$NODE_IP
-
 # Environment setup helpers
 setup-lab: ## Create lab.terraform.tfvars from example
 	@if [ -f "lab.terraform.tfvars" ]; then \
