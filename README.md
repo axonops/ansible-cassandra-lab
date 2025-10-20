@@ -175,9 +175,10 @@ export AXONOPS_ORG="your-organization-name"
 export AXONOPS_TOKEN="your-api-token"
 
 # Ansible vault password (create this file)
-echo "your-secure-vault-password" > ~/.ansible_vault_pass
-chmod 600 ~/.ansible_vault_pass
-export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
+export ENVIRONMENT=lab
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass_${ENVIRONMENT}
+echo "your-secure-vault-password" > ~/.ansible_vault_pass_${ENVIRONMENT}
+chmod 600 ~/.ansible_vault_pass_${ENVIRONMENT}
 ```
 
 ### 3. Provision Infrastructure with Terraform
@@ -374,15 +375,11 @@ make alerts ENVIRONMENT=lab
 > **_NOTE:_** It is highly recommended or even necessary to set up `ssh-agent` to be able to SSH from the bastion to the cassandra nodes. You can read me [here](https://medium.com/@serg-digitalis/using-ssh-tunnels-for-dummies-11d7b73328ad).
 
 ```bash
-# Get bastion IP
-cd ../terraform
-make tf-output
-
-# SSH to bastion
+# Get Bastion IP
 grep bastion ansible/inventory/${ENVIRONMENT}/*
 
 # Access web terminal
-https://<bastion-ip>
+https://<bastion-ip>/wetty
 # Username: (configured in group_vars/all/wetty.yml)
 # Password: (set in group_vars/<env>/vault.yml as vault_wetty_http_password)
 
@@ -880,9 +877,10 @@ All sensitive data is encrypted using Ansible Vault:
 
 ```bash
 # Create vault password file
-echo "my-secure-password" > ~/.ansible_vault_pass
-chmod 600 ~/.ansible_vault_pass
-export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
+export ENVIRONMENT=lab
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass_${ENVIRONMENT}
+echo "my-secure-password" > ~/.ansible_vault_pass_${ENVIRONMENT}
+chmod 600 ~/.ansible_vault_pass_${ENVIRONMENT}
 
 # Edit vault file
 ansible-vault edit group_vars/lab/vault.yml
@@ -977,9 +975,11 @@ make tf-output
 cd ../ansible
 
 # 1. Set up vault password
-echo "your-vault-password" > ~/.ansible_vault_pass
-chmod 600 ~/.ansible_vault_pass
+export ENVIRONMENT=lab
 export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass_${ENVIRONMENT}
+
+echo "your-vault-password" > ~/.ansible_vault_pass_${ENVIRONMENT}
+chmod 600 ~/.ansible_vault_pass_${ENVIRONMENT}
 
 # 2. Install Ansible dependencies
 make prep
@@ -1350,8 +1350,9 @@ make tf-inventory-save
 **Problem:** Vault password not found
 ```bash
 # Ensure vault password file exists and is set
-export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
-cat ~/.ansible_vault_pass  # Should contain your password
+export ENVIRONMENT=lab
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass_${ENVIRONMENT}
+cat ~/.ansible_vault_pass_${ENVIRONMENT}  # Should contain your password
 
 # Test vault access
 ansible-vault view group_vars/lab/vault.yml
