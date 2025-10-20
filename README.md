@@ -71,8 +71,8 @@ This lab environment provides:
    AxonOps provides a free tier for monitoring Cassandra clusters. To sign up:
 
    **Step 1: Create Account**
-   - Visit [axonops.com/free-trial](https://axonops.com/free-trial) or [console.axonops.cloud](https://console.axonops.cloud/)
-   - Click "Sign Up" or "Start Free Trial"
+   - Visit [axonops.com/](https://axonops.com/)
+   - Click "Sign Up" or "Free Account"
    - Provide your email, name, and create a password
    - Verify your email address
 
@@ -82,20 +82,15 @@ This lab environment provides:
    - Note: This organization name is used in configuration files
 
    **Step 3: Get Agent Key**
-   - Navigate to Settings → Agent Keys
-   - Copy your agent key (starts with `axon-`)
-   - This key connects your Cassandra nodes to AxonOps
-
+   - Navigate to https://console.axonops.cloud/
+   - Use the left menu to select the _Agent Setup_
+   - Copy your agent key
+   
    **Step 4: Get API Token (for alerts)**
-   - Navigate to Settings → API Tokens
-   - Click "Generate New Token"
+   - Navigate to API Tokens
+   - Click "Create a New Token"
    - Copy the token immediately (it's only shown once)
    - This token is used to configure alerts via Ansible
-
-   **What you'll need:**
-   - Organization name (e.g., "my-company")
-   - Agent key (for connecting Cassandra nodes)
-   - API token (for configuring monitoring and alerts)
 
 ### Required Tools
 
