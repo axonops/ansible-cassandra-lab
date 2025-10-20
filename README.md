@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="rhttps://digitalis-marketplace-assets.s3.us-east-1.amazonaws.com/AxonopsDigitalMaster_AxonopsFullLogoBlue.jpg" alt="AxonOps Workbench Icon" width="256">
+  <img src="https://digitalis-marketplace-assets.s3.us-east-1.amazonaws.com/AxonopsDigitalMaster_AxonopsFullLogoBlue.jpg" alt="AxonOps Workbench Icon" width="256">
 
   # AxonOps Workbench
 
