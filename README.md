@@ -390,6 +390,23 @@ ssh root@<node-private-ip>
 nodetool status
 ```
 
+### 8. Connect with AxonOps Workbench
+
+[AxonOps Workbench](https://github.com/axonops/axonops-workbench) is a desktop application for connecting to and querying Cassandra clusters. This project includes a pre-configured workspace for easy access.
+
+**Download and Install:**
+- Visit [axonops.com/workbench](https://axonops.com/workbench) to download the desktop application
+- Available for Windows, macOS, and Linux
+
+**Import the Workspace:**
+1. Open AxonOps Workbench
+2. Navigate to File → Import Workspace
+3. Select the `workbench/Training Workspace` directory from this repository
+4. Enter your Cassandra credentials when prompted (default: username `cassandra`, password `cassandra`)
+5. Connect and start querying your cluster
+
+See the [workbench/README.md](workbench/README.md) for detailed instructions.
+
 ## Project Structure
 
 ```
