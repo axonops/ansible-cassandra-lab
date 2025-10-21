@@ -116,8 +116,8 @@
             group: "{{ item.user }}"
             content: |
               [PlainTextAuthProvider]
-              username = {{ cassandra_username | default('cassandra') }}
-              password = {{ cassandra_password | default('cassandra') }}
+              username = {{ vault_cassandra_admin_user | default('cassandra') }}
+              password = {{ vault_cassandra_admin_password | default('cassandra') }}
           loop:
             - {user: 'root', home: '/root'}
             - {user: 'wetty', home: '/home/wetty'}

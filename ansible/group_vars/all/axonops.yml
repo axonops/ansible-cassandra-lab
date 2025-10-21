@@ -11,3 +11,7 @@ axon_agent_disable_command_exec: true
 
 cqlai_host: "localhost"
 cqlai_port: 9042
+cqlai_username: "{{ vault_readonly_user }}"
+cqlai_password: "{{ vault_readonly_password }}"
+cqlai_ssl_insecure_skip_verify: true
+cqlai_ssl_enabled: true

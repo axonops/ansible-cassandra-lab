@@ -58,4 +58,15 @@
       ansible.builtin.import_tasks: _wetty.yml
       tags: wetty
 
+    - name: Disable service restarts
+      ansible.builtin.copy:
+        dest: /etc/needrestart/conf.d/99-auto-restart.conf
+        content: |
+          # Disable automatic service restarts
+          $nrconf{restart} = 'a';
+        owner: root
+        group: root
+        mode: '0644'
+      tags: disable-restarts
+
 # code: language=ansible
