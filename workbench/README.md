@@ -28,9 +28,7 @@ AxonOps Workbench is a purpose-built desktop application for Apache Cassandra th
 
 3. **Enter Credentials**
    - **Important:** Username and password are not stored in this workspace configuration for security reasons
-   - When you import the connection, you will need to enter the Cassandra credentials:
-     - Default username: `cassandra`
-     - Default password: `cassandra` (or the password configured in your deployment)
+   - When you import the connection, you will need to enter the Cassandra credentials provided to you
 
 4. **Connect to the Cluster**
    - After entering credentials, you can connect and start querying your Cassandra cluster

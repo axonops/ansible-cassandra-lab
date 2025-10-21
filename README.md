@@ -402,7 +402,7 @@ nodetool status
 1. Open AxonOps Workbench
 2. Navigate to File → Import Workspace
 3. Select the `workbench/Training Workspace` directory from this repository
-4. Enter your Cassandra credentials when prompted (default: username `cassandra`, password `cassandra`)
+4. Enter your Cassandra credentials when prompted (credentials will be provided to you)
 5. Connect and start querying your cluster
 
 See the [workbench/README.md](workbench/README.md) for detailed instructions.
