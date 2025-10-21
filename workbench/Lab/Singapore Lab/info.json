@@ -1,0 +1,5 @@
+{
+  "id": "connection-168646d77e",
+  "datacenter": "dc1",
+  "axonOpsIntegration": { "organization": "training", "clusterName": "lab", "url": "axonops-saas" }
+}
