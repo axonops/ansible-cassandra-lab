@@ -79,7 +79,7 @@
 
 [connection]
 ;; The host to connect to
-hostname = 5.223.73.105
+hostname = 5.223.52.138 
 
 ;; The port to connect to (9042 is the native protocol default)
 port = 9042

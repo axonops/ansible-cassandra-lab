@@ -44,3 +44,10 @@ ansible/.env
 
 ansible/collections
 ansible/roles
+
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
