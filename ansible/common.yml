@@ -1,0 +1,72 @@
+- hosts: all
+  gather_facts: true
+  become: true
+
+  handlers:
+    - name: Restart nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+  pre_tasks:
+    - name: Ensure inventory hosts are in /etc/hosts
+      tags: hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "^{{ hostvars[item].cassandra_listen_address }}\\s+{{ hostvars[item].ansible_hostname }}$"
+        line: "{{ hostvars[item].cassandra_listen_address }} {{ hostvars[item].ansible_hostname }}"
+        state: present
+        owner: root
+        group: root
+        mode: '0644'
+      loop: "{{ groups.all }}"
+      when: hostvars[item].cassandra_listen_address is defined
+
+    - name: Ensure curl is installed
+      ansible.builtin.package:
+        name:
+          - curl
+          - jq
+          - unzip
+          - nginx
+          - chrony
+        state: present
+        update_cache: true
+
+    - name: Ensure Chrony is started and enabled
+      ansible.builtin.service:
+        name: chrony
+        state: started
+        enabled: true
+  roles:
+    - role: devsec.hardening.os_hardening
+      tags: hardening
+      vars:
+        os_user_pw_ageing: false
+
+    - role: axonops.axonops.cqlai
+      tags: cqlai
+      when: "'bastion' in ansible_hostname"
+      vars:
+        cqlai_host: "10.18.1.6"
+        cqlai_port: 9042
+        qlai_ssl_enabled: true
+        cqlai_ssl_cert_path: ""
+        cqlai_ssl_key_path: ""
+
+  post_tasks:
+    - name: Install wetty
+      ansible.builtin.import_tasks: _wetty.yml
+      tags: wetty
+
+    - name: Disable service restarts
+      ansible.builtin.copy:
+        dest: /etc/needrestart/conf.d/99-auto-restart.conf
+        content: |
+          # Disable automatic service restarts
+          $nrconf{restart} = 'a';
+        owner: root
+        group: root
+        mode: '0644'
+      tags: disable-restarts
+
+# code: language=ansible

@@ -1,0 +1,57 @@
+######## Service Checks ########
+# This is an example set of service checks for the health of your cluster.
+# These rules are some examples of how checks can be configured for
+# your Apache Cassandra cluster. The checks defined here will be applied
+# to this specific cluster.
+
+axonops_shell_check:
+  - name: Check for keyspaces using SimpleStrategy
+    interval: 1d
+    timeout: 2m
+    shell: /bin/bash
+    present: true
+    script: |-
+      /var/lib/axonops/scripts/check-keyspaces-strategy.sh
+
+  - name: Check for schema disagreement
+    interval: 18m
+    timeout: 2m
+    shell: /bin/bash
+    present: true
+    script: |-
+      /var/lib/axonops/scripts/check-schema-disagreements.sh
+
+  - name: Check for node DOWN
+    interval: 15m
+    timeout: 2m
+    shell: /bin/bash
+    present: true
+    script: |-
+      /var/lib/axonops/scripts/check-node-down.sh
+
+  - name: SSL certificate check
+    interval: 1d
+    timeout: 2m
+    script: |-
+      /var/lib/axonops/scripts/check-ssl.sh
+
+  - name: Debian / Ubuntu - Check host needs reboot
+    interval: 1d
+    present: true
+    timeout: 2m
+    script: |-
+      /var/lib/axonops/scripts/check-reboot.sh
+
+  - name: Check the commitlog archiving is working
+    interval: 1h
+    present: true
+    timeout: 2m
+    script: |-
+      /var/lib/axonops/scripts/check-commitlog.sh
+
+axonops_tcp_check:
+  - name: cql_client_port
+    interval: 3m
+    timeout: 1m
+    tcp: "{{.comp_listen_address}}:{{.comp_native_transport_port}}"
+    present: true

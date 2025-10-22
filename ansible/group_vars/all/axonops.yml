@@ -1,0 +1,22 @@
+# AxonOps Agent Configuration
+axon_agent_version: "2.0.9"
+axon_java_agent_version: "1.0.10"
+axon_java_agent: "axon-cassandra5.0-agent-jdk17"
+
+# AxonOps SaaS endpoints (replace with your actual endpoints)
+axon_agent_hosts: "agents.axonops.cloud"
+axon_agent_port: 443
+
+axon_agent_disable_command_exec: true
+
+cqlai_host: "localhost"
+cqlai_port: 9042
+# cqlai_username: "{{ vault_readonly_user }}"
+# cqlai_password: "{{ vault_readonly_password }}"
+cqlai_ssl_insecure_skip_verify: true
+cqlai_ssl_enabled: true
+
+cqlai_ai_provider: openai
+cqlai_ai_openai_api_key: "{{ vault_openai_token }}"
+cqlai_ai_url: "{{ vault_openai_url }}"
+cqlai_ai_openai_model: "{{ vault_openai_model }}"

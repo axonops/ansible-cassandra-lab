@@ -1,0 +1,13 @@
+######## Cassandra Alert Routes ########
+# This is an example set of AxonOps alert routes.
+# Alert endpoints are defined for your entire org. However. the routes
+# are defined per cluster.
+
+axonops_alert_routes: []
+
+# #### Global Alert Routes ####
+# - integration_name: slack_integration_ops
+#   integration_type: slack
+#   type: global
+#   severity: info
+#   enable_override: false
