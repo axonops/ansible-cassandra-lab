@@ -47,7 +47,7 @@ Track how many times each bike has been rented
 
 # Reference Implementation - Instructor's Solution
 
-## Keyspace Setup
+## Keyspace Setup (use your allocated student keyspace)
 
 ```cql
 CREATE KEYSPACE IF NOT EXISTS bikeshare
