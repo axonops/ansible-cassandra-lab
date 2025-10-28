@@ -44,5 +44,3 @@ Track how many times each bike has been rented
 **Q7**: COUNTER table - all non-counter columns in PRIMARY KEY
 
 ---
-
-
