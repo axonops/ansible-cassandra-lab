@@ -20,7 +20,7 @@ This lab environment provides:
 - **Infrastructure as Code** using Terraform for Hetzner Cloud
 - **Configuration Management** using Ansible with AxonOps collection
 - **Production features**: SSL/TLS encryption, authentication, audit logging, monitoring
-- **Web-based terminal access** via Wetty for easy cluster management
+- **Web-based terminal access** via Wetty for easy cluster management (Reccomended to disable this in production)
 - **Comprehensive monitoring** with AxonOps SaaS platform
 
 ## Architecture
